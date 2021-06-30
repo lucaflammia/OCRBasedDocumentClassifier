@@ -1085,7 +1085,7 @@ class GetFileInfo:
         # ELIMINO PAROLE OTTENUTE DA OCR AVENTI UNA LETTERA DIVERSA (ES. codine)
         # RISPETTO ALLE PAROLE NO_WORDS GIA' ELIMINATE
         btw_words = INFO_FIR[info.upper()]['BTWN_WORD']['INIZ'] + INFO_FIR[info.upper()]['BTWN_WORD']['FIN']
-        ignore_words = []
+        ignored_words = []
         for words_lst in btw_words:
             word_like = self.word_like_cond(words_lst)
 
@@ -1103,9 +1103,9 @@ class GetFileInfo:
             res = self.cur.execute(subq).fetchall()
             if res:
                 for item in self.cur.execute(subq).fetchall():
-                    ignore_words.append(item[0].lower())
+                    ignored_words.append(item[0].lower())
 
-        for el in list(set(ignore_words)):
+        for el in list(set(ignored_words)):
             if el in rws[0]:
                 rws[0].remove(el)
 
