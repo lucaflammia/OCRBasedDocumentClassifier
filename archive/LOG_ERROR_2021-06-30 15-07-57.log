@@ -1,0 +1,3 @@
+ERROR REPORT DATETIME 2021-06-30 15:08:03.759396-------------------- ERROR IN FILE 96619_COBAT --------------------
+[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1297 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 211 in find_info>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 125 in get_full_info>]
+Exception - list index out of range

@@ -1,0 +1,3 @@
+ERROR REPORT DATETIME 2021-06-30 09:19:10.911075-------------------- ERROR IN FILE 96999_441560 --------------------
+[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1263 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 122 in get_full_info>]
+Exception - 'id_file'

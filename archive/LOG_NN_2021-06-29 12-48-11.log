@@ -1,0 +1,18 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96449_doc20210105094602172380_003
+NOME FILENAME ACCETTATO --> 96449_doc20210105094602172380
+FILE NON TROVATO IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\FIR_BULK\jpg_archive
+CERCO 96449_doc20210105094602172380.png in C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96449_doc20210105094602172380 -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96449_doc20210105094602172380.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+INDEXES =    id_fir  ...                                         z_note_fir
+0   76752  ...  L'ORDINE VIENE ANNULLATO PERCHE' MAI PERVENUTO...
+1   90508  ...                                                NaN
+2   92383  ...                                                NaN
+3   93165  ...                                                NaN
+4   93226  ...                                                NaN
+
+[5 rows x 71 columns]
+DF = [65016 20831 28062 ... 25015 25015 36100]

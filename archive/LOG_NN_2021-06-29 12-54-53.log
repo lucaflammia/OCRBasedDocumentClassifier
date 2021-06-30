@@ -1,0 +1,36 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96449_doc20210105094602172380_003
+NOME FILENAME ACCETTATO --> 96449_doc20210105094602172380
+FILE NON TROVATO IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\FIR_BULK\jpg_archive
+CERCO 96449_doc20210105094602172380.png in C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96449_doc20210105094602172380 -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96449_doc20210105094602172380.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+INDEXES = Index(['id_fir', 'b_n_fir', 'b_data_emissione_fir',
+       'b_data_fir_inizio_trasporto', 'b_data_fir_inizio_trasporto_data',
+       'b_data_fir', 'b_data_fir_data', 'c_cod_rifiuto', 'c_car_per_rifiuto',
+       'c_car_chim_stampa', 'c_codice_colli', 'a_cap_destinatario_fir',
+       'a_cap_prod', 'a_cap_trasp', 'a_cf_destinatario_fir', 'a_cf_prod',
+       'a_cf_trasp', 'a_comune_destinatario_fir', 'a_comune_prod',
+       'a_comune_trasp', 'a_destinatario_cod_impianto', 'a_pastello_griglie',
+       'a_piva_destinatario_fir', 'a_piva_prod', 'a_piva_trasp',
+       'a_prov_destinatario_fir', 'a_prov_prod', 'a_prov_trasp',
+       'a_rag_soc_destinatario_fir', 'a_rag_soc_prod', 'a_rag_soc_trasp',
+       'a_targa_motrice', 'a_targa_rimorchio', 'a_via_destinatario_fir',
+       'a_via_prod', 'a_via_trasp', 'b_data_emissione_fir_data',
+       'b_data_fir_data_mese', 'b_fir_pdf', 'b_ora_fir',
+       'b_ora_fir_inizio_trasporto', 'b_stato_fir', 'c_ad_rid_rif',
+       'c_car_chim_rif', 'c_cod_rifiuto_tipologia', 'c_colli_rifiuto',
+       'c_desc_rifiuto', 'c_destin_cod_recupero', 'c_destin_cod_smaltimento',
+       'c_destin_recupero', 'c_destin_rif', 'c_destin_rif_cod',
+       'c_destin_smaltimento', 'c_percorso_rif', 'c_peso_ver_rif',
+       'c_st_fis_rifiuto', 'c_tara_rif', 'd_peso_riscontrato', 'fk_id_ordine',
+       'id_destinatario_fir', 'id_odbc', 'id_ordine', 'id_produttore_fir',
+       'id_sede_destinatario_fir', 'id_sede_produttore_fir',
+       'id_trasportatore_fir', 'n_prog', 'ts_inserimento',
+       'ts_ultima_modifica', 'z_correzione_fir', 'z_note_fir'],
+      dtype='object')
+None
+1 FILES PROCESSATI IN 0.40701794624328613 SECONDI
+!!!!!!!!!!!!!!!!!!!! ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA AL SEGUENTE ORARIO 2021-06-29 12:54:57.925413 !!!!!!!!!!!!!!!!!!!!

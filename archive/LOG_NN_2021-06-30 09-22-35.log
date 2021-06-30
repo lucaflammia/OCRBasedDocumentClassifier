@@ -1,0 +1,9 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96999_441560
+NOME FILENAME ACCETTATO --> 96999_441560
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96999_441560 -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96999_441560.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+
+res = []

@@ -1,0 +1,24 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96999_441560
+NOME FILENAME ACCETTATO --> 96999_441560
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96999_441560 -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96999_441560.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+Cerco file 96999_441560 in formato jpg
+Salvataggio file 96999_441560 in formato png su C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+++++++++++++++++++++ FILE : 96999_441560 ++++++++++++++++++++
+TIPOLOGIA GIA' INDIVIDUATA --> FORMULARIO RIFIUTI - ALLEGATO B - ETM
+{'ocr_prod': "[{'veritas', 'artigianato', 'venezia', 'piave', 'spa', 'snc'}]", 'ocr_trasp': 'None', 'ocr_racc': 'None', 'ocr_size': '( 2336 - 700 )'}
+INFO GIA' ACQUISITE. ESECUZIONE PER FILE 96999_441560 TERMINATA
+
+@@@@@@@@@@@@@@@@@@@@ SOMMARIO FILE 96999_441560 @@@@@@@@@@@@@@@@@@@@
+
+
+FILE 96999_441560 : FORMULARIO RIFIUTI - ALLEGATO B - ETM None
+
+
+@@@@@@@@@@@@@@@@@@@@ FINE SOMMARIO FILE 96999_441560 @@@@@@@@@@@@@@@@@@@@
+
+1 FILES PROCESSATI IN 2.242997884750366 SECONDI
+!!!!!!!!!!!!!!!!!!!! ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA AL SEGUENTE ORARIO 2021-06-30 10:21:37.047444 !!!!!!!!!!!!!!!!!!!!

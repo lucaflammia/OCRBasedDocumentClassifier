@@ -171,7 +171,7 @@ COMMON_FIR_INFO = {
                '80005370137', 'bianchi', 'pneumatici', 'deambrosis', 'maurizio', 'san', 'pietro', 'casorzo', '14032',
                'elettrauto', 'auto', 'lunger', 'welschnofen', 'levante', 'nova', 'gerenzano', 'inglesina', '21040',
                'milano', 'snc', 'sea', 'valle', 'camonica', 'rigamonti', 'darfo', 'servizi', 'mollo', 'sonico',
-               'isola', 'baiso'],
+               'isola', 'baiso', 'europa', 'cem', 'pessano', 'bornago'],
     'TIPO_B': ['newave'],
     'TIPO_C': ['srl', 'cavagna', 'toscanini', 'renato', 'caorso', '43010', 'fontevivo', 'pontetaro',
                '29012', 'maggio', '01103640338', 'ecologia', 'autoservice', 'melissano', 'pontenure', '29010'

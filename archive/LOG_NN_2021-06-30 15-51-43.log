@@ -1,0 +1,56 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96619_COBAT
+NOME FILENAME ACCETTATO --> 96619_COBAT
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96619_COBAT -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96619_COBAT.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+++++++++++++++++++++ FILE : 96619_COBAT ++++++++++++++++++++
+TIPOLOGIA GIA' INDIVIDUATA --> FORMULARIO RIFIUTI - ALLEGATO B - ETM
+BTWN WORDS ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale']
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like '_etentore' or parola like 'detento_e' or parola like 'detent_re' or parola like 'dete_tore' or parola like 'deten_ore' or parola like 'detentor_' or parola like 'det_ntore' or parola like 'de_entore' or parola like 'd_tentore') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO')}
+BTWN WORDS ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'aut/albo']
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like 'uni_a' or parola like '_nita' or parola like 'u_ita' or parola like 'un_ta' or parola like 'unit_') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like '_ocale' or parola like 'loca_e' or parola like 'loc_le' or parola like 'l_cale' or parola like 'local_' or parola like 'lo_ale') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO'), 'locale': ((62559, 227.77734375, 383.080078125), 'BASSO')}
+PAROLE CHE DETERMINANO OCR PER ZONA PRODUTTORE :
+{'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO'), 'locale': ((62559, 227.77734375, 383.080078125), 'BASSO')}
+++++++++++++++++++++ PRIMO TENTATIVO CREAZIONE RITAGLIO OCR PRODUTTORE PER FILE 96619_COBAT ++++++++++++++++++++
+ANALISI OCR RITAGLIO PRODUTTORE PER FILE 96619_COBAT : SIZE ( 2361 - 700 )

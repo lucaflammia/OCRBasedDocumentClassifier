@@ -1,0 +1,120 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 109687_DUB119296_2020
+NOME FILENAME ACCETTATO --> 109687_DUB119296
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 109687_DUB119296 -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 109687_DUB119296.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+Cerco file 109687_DUB119296 in formato jpg
+Salvataggio file 109687_DUB119296 in formato png su C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+++++++++++++++++++++ FILE : 109687_DUB119296 ++++++++++++++++++++
+FILE NON TROVATO NEL DB
+ANALISI INIZIALE OCR PER FILE 109687_DUB119296
+FILE 109687_DUB119296 RUOTATO DI 0 GRADI
+-------------------- ESECUZIONE OCR PER FILE 109687_DUB119296 --------------------
+-------------------- INIZIO PER RITAGLIO 0.500W-0.250H --------------------
+-------------------- FINE ESECUZIONE IN 28.015098333358765 SECONDI --------------------
+-------------------- INIZIO PER RITAGLIO 0.500W-0.500H --------------------
+-------------------- FINE ESECUZIONE IN 25.06269335746765 SECONDI --------------------
+-------------------- FINE ESECUZIONE OCR --------------------
+ELIMINO RECORDS PRECENDENTI NELLA TABELLA parole_WEB
+INSERIMENTO DI 127 RECORDS PER FILE 109687_DUB119296
+PERCENTUALE RIGHE SOSPETTE (LUNGHEZZA 0 OPPURE 1) : 19%
+OCR INIZIALE FILE 109687_DUB119296 VALIDO CON ROTAZIONE NULLA
+FINE ANALISI INIZIALE OCR PER FILE 109687_DUB119296
+RICERCA TIPO_A : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    ((parola like 'formular_o' or parola like 'form_lario' or parola like 'formul_rio' or parola like 'for_ulario' or parola like 'formula_io' or parola like 'formu_ario' or parola like 'f_rmulario' or parola like 'formulari_' or parola like 'fo_mulario' or parola like '_ormulario') OR 
+                    ( parola like 'for%rio' OR
+                    parola like 'for%' OR
+                    parola like '%rio' )
+                ) AND
+                    div_x = '1-2' AND
+                    div_y = '1-4' AND
+                    file = '109687_DUB119296'
+                    LIMIT 1;
+                
+RICERCA TIPO_A : 
+                    
+                SELECT parola, coor_x, coor_y, file
+                FROM parole_WEB p
+                LEFT JOIN "files_WEB" f
+                ON (p.id_file=f.id)
+            
+                    WHERE
+                    ((parola like 'rifiu_i' or parola like '_ifiuti' or parola like 'rif_uti' or parola like 'ri_iuti' or parola like 'rifi_ti' or parola like 'r_fiuti' or parola like 'rifiut_') OR 
+                    (parola like 'ri%ti' OR
+                    parola like '%fiu%' OR
+                    parola like 'rif%')
+                ) AND
+                    p.id < 62164 + 25 AND
+                    p.id > 62164 - 25 AND
+                    file = '109687_DUB119296';
+                
+-------------------- TIPOLOGIA FIR : FORMULARIO RIFIUTI - ALLEGATO B - ETM --------------------
+BTWN WORDS ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale']
+FILE 109687_DUB119296 RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '109687_DUB119296' AND
+                    (parola like 'dete_tore' or parola like 'deten_ore' or parola like 'detent_re' or parola like 'detentor_' or parola like '_etentore' or parola like 'det_ntore' or parola like 'detento_e' or parola like 'd_tentore' or parola like 'de_entore') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62184, 444.8046875, 266.19140625), 'ALTO')}
+BTWN WORDS ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'aut/albo']
+FILE 109687_DUB119296 RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '109687_DUB119296' AND
+                    (parola like '_nita' or parola like 'unit_' or parola like 'un_ta' or parola like 'uni_a' or parola like 'u_ita') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62184, 444.8046875, 266.19140625), 'ALTO'), 'unita': ((62196, 162.48046875, 399.86328125), 'BASSO')}
+PAROLE CHE DETERMINANO OCR PER ZONA PRODUTTORE :
+{'detentore': ((62184, 444.8046875, 266.19140625), 'ALTO'), 'unita': ((62196, 162.48046875, 399.86328125), 'BASSO')}
+++++++++++++++++++++ PRIMO TENTATIVO CREAZIONE RITAGLIO OCR PRODUTTORE PER FILE 109687_DUB119296 ++++++++++++++++++++
+ANALISI OCR RITAGLIO PRODUTTORE PER FILE 109687_DUB119296 : SIZE ( 2364 - 700 )
+data {'PRODUTTORE': ['i,', '[2]', 'del', 'febtuate', '19979.', '22', 'fart.', 'ihe', 'emi)', 'FORMULARIO', 'RIFIUTI', 'sieeestene', 'ATA', 'Of', 'EMISSION', 'DEL', 'FORILLARIO', '30-03-2021;8', 'MUMERO', 'REGISTRO', 'J', 'Ey', 'PRoburrone', '0', 'DETENTORE', 'Denominazione', 'o', 'Ragione', 'sociale', 'COMUNE', 'Di', 'POSTIGLIONE', '—$_—$___', 'bs', 'veoe', 'SS', 'CLOCALITANESCASNC', 'BORE', "POSTIGUONE'SA)", 'Cod.', 'foo_.', '1.', 'OP64SB008S7,', 'N.', 'Aut/Albo', 'det', 'Si', '7', 'SOGEMONT', 'RAEE', 'SRL', 'Ss', 'Denominazione', 'o', 'Ragjane', 'sociale', '5']}
+-------------------- 57 RECORDS TROVATI --------------------
+FINE ANALISI OCR RITAGLIO PRODUTTORE PER FILE 109687_DUB119296
+
+#################### RICERCA RITAGLIO PRODUTTORE ####################
+
+RANGE PAROLE INDIVIDUATE ['i', '2', 'del', 'febtuate', '22', 'fart', 'ihe', 'emi', 'FORMULARIO', 'RIFIUTI', 'sieeestene', 'ATA', 'Of', 'EMISSION', 'DEL', 'FORILLARIO', 'MUMERO', 'REGISTRO', 'J', 'Ey', 'PRoburrone', '0', 'DETENTORE', 'Denominazione', 'o', 'Ragione', 'sociale', 'COMUNE', 'Di', 'POSTIGLIONE', 'bs', 'veoe', 'SS', 'CLOCALITANESCASNC', 'BORE', 'POSTIGUONE', 'SA', 'Cod', 'foo', '1', 'OP', 'SB', 'S', 'N', 'Aut', 'Albo', 'det', 'Si', '7', 'SOGEMONT', 'RAEE', 'SRL', 'Ss', 'Denominazione', 'o', 'Ragjane', 'sociale', '5']
+PAROLE CHIAVE CHE DELIMITANO INFO {'detentore': [(40833, 'DETENTORE', 'ALTO')], 'denominazione': [(40834, 'Denominazione', 'ALTO')], 'ragione': [(40836, 'Ragione', 'ALTO')], 'sociale': [(40837, 'sociale', 'ALTO')], 'END_INFO': [(40868, 'NO WORD', 'EOF')]}
+RANGE ID [40834, 40836] PER RICERCA INFO
+RANGE ID [40837, 40868] PER RICERCA INFO
+RANGE PAROLE TROVATE ZONA PRODUTTORE : [['o'], ['comune', 'di', 'postiglione', 'bs', 'veoe', 'ss', 'clocalitanescasnc', 'bore', 'postiguone', 'sa', 'cod', 'foo', '1', 'op', 'sb', 's', 'n', 'aut', 'albo', 'det', 'si', '7', 'sogemont', 'raee', 'srl', 'ss', 'denominazione', 'o', 'ragjane', 'sociale']]
+RANGE PAROLE SELEZIONATE ZONA PRODUTTORE : [{'postiglione', 'comune', 'srl'}]
+
+#################### FINE RICERCA ZONA PRODUTTORE ####################
+
+INSERIMENTO IN TABELLA OCR_PRODUTTORE
+
+@@@@@@@@@@@@@@@@@@@@ SOMMARIO FILE 109687_DUB119296 @@@@@@@@@@@@@@@@@@@@
+
+
+FILE 109687_DUB119296 : FORMULARIO RIFIUTI - ALLEGATO B - ETM {'ocr_prod': [{'postiglione', 'comune', 'srl'}], 'ocr_trasp': None, 'ocr_racc': None, 'ocr_size': '( 2364 - 700 )'}
+
+
+@@@@@@@@@@@@@@@@@@@@ FINE SOMMARIO FILE 109687_DUB119296 @@@@@@@@@@@@@@@@@@@@
+
+1 FILES PROCESSATI IN 68.48795223236084 SECONDI
+!!!!!!!!!!!!!!!!!!!! ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA AL SEGUENTE ORARIO 2021-06-29 15:48:48.269159 !!!!!!!!!!!!!!!!!!!!

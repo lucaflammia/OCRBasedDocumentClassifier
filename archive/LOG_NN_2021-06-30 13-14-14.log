@@ -1,0 +1,90 @@
+!!!!!!!!!!!!!!!!!!!! INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI !!!!!!!!!!!!!!!!!!!!
+VERIFICO IDENEITA' CARATTERI PER FILE 96619_COBAT_DUC593220
+NOME FILENAME ACCETTATO --> 96619_COBAT
+FILE NON TROVATO IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\FIR_BULK\jpg_archive
+CERCO 96619_COBAT.png in C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+
+-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o ANALISI FILE 96619_COBAT -o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o-o
+
+CERCO FILE 96619_COBAT.png IN C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+Cerco file 96619_COBAT in formato jpg
+Salvataggio file 96619_COBAT in formato png su C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\NEW_OCR\images
+++++++++++++++++++++ FILE : 96619_COBAT ++++++++++++++++++++
+TIPOLOGIA GIA' INDIVIDUATA --> FORMULARIO RIFIUTI - ALLEGATO B - ETM
+BTWN WORDS ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale']
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like 'dete_tore' or parola like 'detentor_' or parola like '_etentore' or parola like 'det_ntore' or parola like 'detento_e' or parola like 'detent_re' or parola like 'de_entore' or parola like 'deten_ore' or parola like 'd_tentore') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO')}
+BTWN WORDS ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'aut/albo']
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like 'u_ita' or parola like 'unit_' or parola like 'uni_a' or parola like '_nita' or parola like 'un_ta') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+FILE 96619_COBAT RICERCA BASE PRODUTTORE : 
+                    
+                SELECT p.id, p.coor_x, p.coor_y
+                FROM parole_WEB p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)
+             WHERE
+                    file = '96619_COBAT' AND
+                    (parola like 'lo_ale' or parola like 'l_cale' or parola like '_ocale' or parola like 'local_' or parola like 'loc_le' or parola like 'loca_e') AND
+                    div_y = '1-4'
+                    ORDER BY p.id ASC
+                    LIMIT 1;
+                
+RISULTATO : {'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO'), 'locale': ((62559, 227.77734375, 383.080078125), 'BASSO')}
+PAROLE CHE DETERMINANO OCR PER ZONA PRODUTTORE :
+{'detentore': ((62544, 462.077880859375, 205.39991760253903), 'ALTO'), 'locale': ((62559, 227.77734375, 383.080078125), 'BASSO')}
+++++++++++++++++++++ PRIMO TENTATIVO CREAZIONE RITAGLIO OCR PRODUTTORE PER FILE 96619_COBAT ++++++++++++++++++++
+ANALISI OCR RITAGLIO PRODUTTORE PER FILE 96619_COBAT : SIZE ( 2361 - 700 )
+data {'PRODUTTORE': ['numero', 'nesisT', 'FDOOOS', 'ormeussneromunno|', '$4a29', 'ei', 'etana', 'ns', '2', 'Denominazione', 'o', 'Ragione', 'sociale', 'CEM', 'AMBIENTE', 'SPA', 'g', '-_', 'camel', 'Be', 'aes', 'SE', 'g', 'Unita', 'Locale', '_', 'CE.', 'PESSANO', 'CON', 'BORNAGO', 'VIA', 'DI', '38080', 'PESSANG', 'CON', 'SORNAGO', 'Codice', 'Fiscate', '039651760756', 'Numero', 'jone./', 'Kibo', 'Se', 'a', 'mee', '—__—_~--—.', 'Codine', 'Fiscale_|__UewOT', 'eS', '_______j__', 'Numero', 'Autorizzazione', 'Albo', '_RGATSSV2016', '__cel|', '20-42-16', '_|', 'E', '_', 'RGB', '2016', '20-12-46', 'H', 'Denominazione', 'o', 'Ragione', 'sociale', 'A', 'STENA', 'RECYCLING', '&.R.L.']}
+-------------------- 71 RECORDS TROVATI --------------------
+FINE ANALISI OCR RITAGLIO PRODUTTORE PER FILE 96619_COBAT
+
+#################### RICERCA RITAGLIO PRODUTTORE ####################
+
+RANGE PAROLE INDIVIDUATE ['numero', 'nesisT', 'FDOOOS', 'ormeussneromunno', 'a', 'ei', 'etana', 'ns', '2', 'Denominazione', 'o', 'Ragione', 'sociale', 'CEM', 'AMBIENTE', 'SPA', 'g', 'camel', 'Be', 'aes', 'SE', 'g', 'Unita', 'Locale', 'CE', 'PESSANO', 'CON', 'BORNAGO', 'VIA', 'DI', 'PESSANG', 'CON', 'SORNAGO', 'Codice', 'Fiscate', 'Numero', 'jone', 'Kibo', 'Se', 'a', 'mee', 'Codine', 'Fiscale', 'UewOT', 'eS', 'j', 'Numero', 'Autorizzazione', 'Albo', 'RGATSSV', 'cel', 'E', 'RGB', 'H', 'Denominazione', 'o', 'Ragione', 'sociale', 'A', 'STENA', 'RECYCLING', 'R', 'L']
+PAROLE CHIAVE CHE DELIMITANO INFO {'denominazione': [(41465, 'Denominazione', 'ALTO')], 'ragione': [(41467, 'Ragione', 'ALTO')], 'sociale': [(41468, 'sociale', 'ALTO')], 'unita': [(41478, 'Unita', 'BASSO')], 'locale': [(41479, 'Locale', 'BASSO')], 'codice': [(41497, 'Codine', 'BASSO')], 'fiscale': [(41490, 'Fiscate', 'BASSO')], 'autorizzazione': [(41503, 'Autorizzazione', 'BASSO')]}
+RANGE ID [41465, 41467] PER RICERCA INFO
+RANGE ID [41468, 41478] PER RICERCA INFO
+RANGE ID [41479, 41497] PER RICERCA INFO
+RANGE ID [41490, 41503] PER RICERCA INFO
+RANGE PAROLE TROVATE ZONA PRODUTTORE : [['o'], ['cem', 'ambiente', 'spa', 'g', 'camel', 'be', 'aes', 'se', 'g'], ['ce', 'pessano', 'con', 'bornago', 'via', 'di', 'pessang', 'con', 'sornago', 'codice', 'fiscate', 'numero', 'jone', 'kibo', 'se', 'a', 'mee'], ['numero', 'jone', 'kibo', 'se', 'a', 'mee', 'codine', 'fiscale', 'uewot', 'es', 'j', 'numero']]
+RWORDS [[''], ['cem', 'ambiente', 'spa', '', '', '', '', '', ''], ['', 'pessano', '', 'bornago', '', '', 'pessano', '', 'bornago', '', 'fiscate', '', '', '', '', '', ''], ['', '', '', '', '', '', 'codine', '', '', '', '', '']]
+RANGE PAROLE SELEZIONATE ZONA PRODUTTORE : [{'bornago', 'spa', 'ambiente', 'cem', 'codine', 'pessano'}]
+
+#################### FINE RICERCA ZONA PRODUTTORE ####################
+
+INSERIMENTO IN TABELLA OCR_PRODUTTORE
+
+@@@@@@@@@@@@@@@@@@@@ SOMMARIO FILE 96619_COBAT @@@@@@@@@@@@@@@@@@@@
+
+
+FILE 96619_COBAT : FORMULARIO RIFIUTI - ALLEGATO B - ETM {'ocr_prod': [{'bornago', 'spa', 'ambiente', 'cem', 'codine', 'pessano'}], 'ocr_trasp': None, 'ocr_racc': None, 'ocr_size': '( 2361 - 700 )'}
+
+
+@@@@@@@@@@@@@@@@@@@@ FINE SOMMARIO FILE 96619_COBAT @@@@@@@@@@@@@@@@@@@@
+
+1 FILES PROCESSATI IN 7.577266693115234 SECONDI
+!!!!!!!!!!!!!!!!!!!! ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA AL SEGUENTE ORARIO 2021-06-30 13:14:19.000690 !!!!!!!!!!!!!!!!!!!!

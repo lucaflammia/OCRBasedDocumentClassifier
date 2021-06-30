@@ -77,6 +77,7 @@ class GetFileInfo:
         self.produttore = 'NOT FOUND'
         self.trasportatore = 'NOT FOUND'
         self.raccoglitore = 'NOT FOUND'
+        self.info_data = {}
 
     def word_like_cond(self, target, fieldname='parola', perc=False):
         wcond = {}
@@ -112,9 +113,27 @@ class GetFileInfo:
 
         return wcond
 
-    def get_dataframe(self):
-        df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), error_bad_lines=False, skiprows=2)
-        self.logger.info('DF = {}'.format(df.head()))
+    def get_full_info(self, full_info=''):
+
+        id_fir = self.file_only.split('_')[0]
+
+        q = """
+            SELECT * FROM {table}
+            WHERE id_fir = '{id_fir}'
+        """.format(table='INFO_{}'.format(full_info), id_fir=id_fir)
+
+        item = [row for row in self.cur.execute(q).fetchall()[0]]
+        full_info_dict = {
+            'id': item[0],
+            'id_fir': item[1],
+            'a_rag_soc_prod': item[2],
+            'a_prov_prod': item[3],
+            'a_comune_prod': item[4],
+            'a_via_prod': item[5],
+            'a_cap_prod': item[6]
+        }
+
+        return full_info_dict
 
     def find_info(self):
         word_like = {}
@@ -186,18 +205,19 @@ class GetFileInfo:
                                  'NESSUNA INFO A DISPOSIZIONE\n\n\n'.format(self.file_only))
                 return
 
-        res = self.check_file(table='INFO_FIR')
+        res = self.check_file(table='OCR_FIR')
         # INSERISCO PAROLE DA ACCETTARE QUALORA VENISSERO INDIVIDUATE DURANTE OCR
         self.insert_common_words(info_fir='PRODUTTORE')
+        # self.get_full_info(full_info='PRODUTTORE')
         if res:
             self.logger.info("INFO GIA' ACQUISITE. ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
-            return
+            return self.info_data
         # IN CASO DI TIPOLOGIA TROVATA E NON ANALIZZATA, SI CERCANO LE INFO
         for inf in ['prod', 'trasp', 'racc']:
-            info_data = self.get_info_fir(inf)
+            self.get_info_fir(inf)
             break
 
-        return info_data
+        return self.info_data
 
     def esclusione_parole_tipologia(self, tipo, word_like, pid):
 
@@ -344,7 +364,6 @@ class GetFileInfo:
         # RIMUOVO IL RUMORE
         # gray = cv2.medianBlur(gray, 3)
         return gray
-
 
     def ocr_analysis_ritaglio(self, info, cutoff_width=0, config_ocr=r'--oem 3 --psm 4'):
         info_fir = INFO_FIR[info.upper()]['TEXT']
@@ -507,7 +526,8 @@ class GetFileInfo:
                 break
 
     def check_file(self, table='files_WEB', rotation=False):
-        if table == 'INFO_FIR':
+        data_info = None
+        if table == 'OCR_FIR':
             q = """
                 SELECT *
                 FROM {table}
@@ -539,6 +559,10 @@ class GetFileInfo:
            """.format(table1=table, table2='files_WEB' if self.web else 'files',
                       file=self.file_only)
         res = self.cur.execute(q).fetchall()
+        if table == 'OCR_FIR' and res:
+            item = res[0]
+            self.info_data = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6], 'ocr_size': item[2]}
+
         return res
 
     def query_info_db(self, data):
@@ -557,13 +581,15 @@ class GetFileInfo:
 
         if not res:
             for par in data.get(info_fir):
+                # ELIMINO CARATTERE UNDERSCORE (POICHE' E' ALFANUMERICO)
+                par = re.sub('_', '', par)
                 if par.lower() in ['s.r.l', 'sr.l', 's.rl']:
                     res_par = 'srl'
                 # SE TROVO CARATTERI SPECIALI NELLA PAROLA
                 elif re.search('\W', par) and len(par) > 3:
                     res_par = re.split('\W', par)
-                    # DEVO ELIMINARE ANCHE CIFRE A CASO ES. ____AUTORICAMBI3.GI
                     for rpar in res_par:
+                        # DEVO SEPARARE CARATTERI DA CIFRE ES. AUTORICAMBI3.GI
                         if re.search('\d', rpar):
                             res_par = re.split('\d', rpar)
                 # SE TROVO CARATTERI ORDINALI INSIEME A CIFRE
@@ -632,7 +658,7 @@ class GetFileInfo:
 
     def insert_info_db(self, data):
         q = """
-            INSERT INTO INFO_FIR (file,ocr_size, flt,ocr_prod,ocr_trasp,ocr_racc,ts)
+            INSERT INTO OCR_FIR (file,ocr_size, flt,ocr_prod,ocr_trasp,ocr_racc,ts)
                 VALUES ("{file}", "{ocr_size}", "{flt}", "{ocr_prod}", "{ocr_trasp}", "{ocr_racc}", CURRENT_TIMESTAMP)
             """.format(file=self.file_only, ocr_size=data['ocr_size'], flt=self.flt, ocr_prod=data['ocr_prod'],
                        ocr_trasp=data['ocr_trasp'], ocr_racc=data['ocr_racc'])
@@ -803,12 +829,12 @@ class GetFileInfo:
 
         delim_words = self.get_delim_words(info, btw_words, id_st, id_fin)
 
-        info_data = self.check_ritaglio(delim_words, info)
+        self.check_ritaglio(delim_words, info)
 
         NTENTATIVI = 4
 
         # SECONDO TENTATIVO OCR RITAGLIO --> ALLARGO RITAGLIO E RIPROVO
-        if not info_data:
+        if not self.info_data:
             for itentativo in range(NTENTATIVI):
                 # CAMBIO SIZE DEL RITAGLIO
                 self.delete_table(table='ocr', info_fir=INFO_FIR[info.upper()]['TEXT'])
@@ -838,12 +864,12 @@ class GetFileInfo:
 
                 delim_words = self.get_delim_words(info, btw_words, id_st, id_fin)
 
-                info_data = self.check_ritaglio(delim_words, info)
+                self.check_ritaglio(delim_words, info)
                 # SE TROVO RISULTATO ESCO
-                if info_data:
+                if self.info_data:
                     break
 
-        if not info_data:
+        if not self.info_data:
             # NEL CASO NON ABBIA RISULTATI CAMBIO PARAMETRI OCR DI PYTESSEACT (--oem 3 --psm 6)  E RIPETO
             for itent in range(2):
                 self.delete_table(table='ocr', info_fir=INFO_FIR[info.upper()]['TEXT'])
@@ -872,16 +898,14 @@ class GetFileInfo:
 
                 delim_words = self.get_delim_words(info, btw_words, id_st, id_fin)
 
-                info_data = self.check_ritaglio(delim_words, info)
+                self.check_ritaglio(delim_words, info)
                 # SE TROVO RISULTATO ESCO
-                if info_data:
+                if self.info_data:
                     break
 
-        if info_data:
+        if self.info_data:
             self.logger.info('INSERIMENTO IN TABELLA OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']))
-            self.insert_info_db(info_data)
-
-        return info_data
+            self.insert_info_db(self.info_data)
 
     def check_ocr_files(self, info_ocr=None):
         q = """
@@ -899,7 +923,7 @@ class GetFileInfo:
             SELECT DISTINCT file 
             FROM "{table}"
             WHERE file in ({tot_files})
-        """.format(table='INFO_FIR', tot_files=tot_files)
+        """.format(table='OCR_FIR', tot_files=tot_files)
 
         ocr_files_lst = []
         for row in self.cur.execute(q).fetchall():
@@ -1058,13 +1082,38 @@ class GetFileInfo:
                              .format(INFO_FIR[info.upper()]['TEXT'], self.file_only))
             return
 
+        # ELIMINO PAROLE OTTENUTE DA OCR AVENTI UNA LETTERA DIVERSA (ES. codine)
+        # RISPETTO ALLE PAROLE NO_WORDS GIA' ELIMINATE
+        btw_words = INFO_FIR[info.upper()]['BTWN_WORD']['INIZ'] + INFO_FIR[info.upper()]['BTWN_WORD']['FIN']
+        ignore_words = []
+        for words_lst in btw_words:
+            word_like = self.word_like_cond(words_lst)
+
+            clike = '(' + ' or '.join(word_like[words_lst]) + ')'
+            subq = """
+                SELECT p.parola
+                FROM OCR_{table} p
+                LEFT JOIN files_WEB f
+                ON (p.id_file=f.id)WHERE
+                file = '{file}' AND
+                {clike};
+            """.format(table=INFO_FIR[info.upper()]['TEXT'], file=self.file_only, clike=clike)
+
+            # se parola like dà risultato esco subito
+            res = self.cur.execute(subq).fetchall()
+            if res:
+                for item in self.cur.execute(subq).fetchall():
+                    ignore_words.append(item[0].lower())
+
+        for el in list(set(ignore_words)):
+            if el in rws[0]:
+                rws[0].remove(el)
+
         self.logger.info('RANGE PAROLE SELEZIONATE ZONA {} : {}'.format(INFO_FIR[info.upper()]['TEXT'], rws))
         self.logger.info('\n{0} FINE RICERCA ZONA {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
 
-        data = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
-                'ocr_size': '( {} - {} )'.format(self.crop_width, self.crop_height)}
-
-        return data
+        self.info_data = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
+                          'ocr_size': '( {} - {} )'.format(self.crop_width, self.crop_height)}
 
     def get_grayscale(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -1192,13 +1241,33 @@ def process_image(curr_file):
 
     return img
 
+def get_dataframe_produttore():
+    df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='iso-8859-1',
+                     error_bad_lines=False, skiprows=1, sep=';')
+    self.logger.info('INDEXES = {}'.format(df.columns))
+    for col in ['a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']:
+        if col == 'a_cap_prod':
+            df[col] = df[col].fillna(0)
+            continue
+        df[col] = df[col].fillna('')
+    df['a_cap_prod'] = df['a_cap_prod'].astype(int)
+    data_prod = {
+        'id_fir': df['id_fir'].to_numpy(),
+        'a_rag_soc_prod': df['a_rag_soc_prod'].to_numpy(),
+        'a_prov_prod': df['a_prov_prod'].to_numpy(),
+        'a_comune_prod': df['a_comune_prod'].to_numpy(),
+        'a_via_prod': df['a_via_prod'].to_numpy(),
+        'a_cap_prod': df['a_cap_prod'].to_numpy()
+    }
+    df_prod = pd.DataFrame(data=data_prod)
+    df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"))
 
 if __name__ == '__main__':
     logger.info('{0} INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI {0}'.format('!' * 20))
     start_time = time.time()
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # FAI DATAFRAME INFO_FIR_COMPLETO
-    load_files = ['96449_doc20210105094602172380_003']#os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
+    load_files = ['96619_COBAT']#os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
     files = []
     # SE FILES CARICATI HANNO TANTI "_" ALLORA NE CONSIDERO SOLO UNO PER SEMPLICITA'
     for load_file in load_files:
@@ -1227,8 +1296,6 @@ if __name__ == '__main__':
             process_image(file_only)
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
             info = GetFileInfo(file_png, logger=logger, web=True)
-            info.get_dataframe()
-            quit()
             info_data = info.find_info()
             logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, file_only))
             logger.info("\nFILE {0} : {1} {2}\n".format(file_only, info.nome_tipologia, info_data))
