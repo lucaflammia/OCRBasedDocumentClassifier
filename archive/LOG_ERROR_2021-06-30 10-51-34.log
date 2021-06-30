@@ -1,3 +1,0 @@
-ERROR REPORT DATETIME 2021-06-30 10:51:38.863573-------------------- ERROR IN FILE 98161_DUA6128382020 --------------------
-[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1271 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 208 in find_info>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 564 in check_file>]
-Exception - list index out of range

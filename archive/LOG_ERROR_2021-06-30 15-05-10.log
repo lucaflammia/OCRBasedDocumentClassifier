@@ -1,3 +1,0 @@
-ERROR REPORT DATETIME 2021-06-30 15:05:17.612806-------------------- ERROR IN FILE 96619_COBAT --------------------
-[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1297 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 217 in find_info>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 832 in get_info_fir>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1105 in check_ritaglio>]
-Exception - no such table: OCR_PROD
