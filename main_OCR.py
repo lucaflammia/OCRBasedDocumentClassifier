@@ -23,6 +23,7 @@ import pandas as pd
 import pytesseract
 import enchant
 import time
+from nltk import word_tokenize
 from pytesseract import Output
 import traceback
 import logging
@@ -207,8 +208,8 @@ class GetFileInfo:
 
         res = self.check_file(table='OCR_FIR')
         # INSERISCO PAROLE DA ACCETTARE QUALORA VENISSERO INDIVIDUATE DURANTE OCR
-        self.insert_common_words(info_fir='PRODUTTORE')
-        # self.get_full_info(full_info='PRODUTTORE')
+        # self.insert_common_words(info_fir='PRODUTTORE')
+        #self.get_full_info(full_info='PRODUTTORE')
         if res:
             self.logger.info("INFO GIA' ACQUISITE. ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
             return self.info_data
@@ -1201,6 +1202,7 @@ class GetFileInfo:
         train_y = list(training[:, 1])
         return train_x, train_y
 
+
 def underscore_split(file):
     if file.count("_") >= 2:
         file = "_".join(file.split("_", 2)[:2])
@@ -1209,6 +1211,7 @@ def underscore_split(file):
         file = re.sub('\W', '', file)
 
     return file
+
 
 def process_image(curr_file):
     filepath = os.path.join(IMAGE_PATH, curr_file)
@@ -1241,16 +1244,27 @@ def process_image(curr_file):
 
     return img
 
-def get_dataframe_produttore():
-    df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='iso-8859-1',
+
+def write_info_produttori():
+    stopwords = []
+    with open(os.path.join(PRED_PATH, 'stopwords.txt'), 'r', encoding='utf-8') as f:
+        text = f.readlines()
+        for t in text:
+            stopwords.append(t.replace('\n', ''))
+        f.close()
+    logger.info('stopwords {}'.format(stopwords))
+
+    df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='utf-8',
                      error_bad_lines=False, skiprows=1, sep=';')
-    self.logger.info('INDEXES = {}'.format(df.columns))
+    logger.info('INDEXES = {}'.format(df.columns))
     for col in ['a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']:
         if col == 'a_cap_prod':
             df[col] = df[col].fillna(0)
+            df[col] = df[col].astype(int)
             continue
         df[col] = df[col].fillna('')
-    df['a_cap_prod'] = df['a_cap_prod'].astype(int)
+        df[col] = df[col].astype(str)
+        # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
     data_prod = {
         'id_fir': df['id_fir'].to_numpy(),
         'a_rag_soc_prod': df['a_rag_soc_prod'].to_numpy(),
@@ -1262,13 +1276,75 @@ def get_dataframe_produttore():
     df_prod = pd.DataFrame(data=data_prod)
     df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"))
 
+    prod_dict = {}
+    for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
+        df_prod[col] = df_prod[col].apply(lambda cl: cl.lower())
+        val_lst = df_prod[col].values
+        words_prod = set()
+        for txt in val_lst:
+            # logger.info(txt)
+            words_lst = [re.sub('\W', '', p.replace("'", '')) for p in word_tokenize(txt) if p not in stopwords
+                    and p not in string.punctuation and not re.search('\d', p)
+                         and not (len(p) <= 2 and re.search('\W', p))]
+            # logger.info(words_lst)
+            words_prod.update(words_lst)
+
+        val_set = set(parola for parola in words_prod)
+        foo = [el for el in val_set]
+        prod_dict[col] = sorted(foo)
+        logger.info('{0} : {1} - {2}'.format(col, prod_dict[col][-30:-1], len(prod_dict[col])))
+
+    with open(os.path.join(PRED_PATH, 'SORTED_INFO_PROD.txt'), 'w') as f:
+        f.write('PAROLE NON BANALI IN ELENCO ALFABETICO PER OGNI CAMPO DEL PRODUTTORE\n')
+        for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
+            f.write('\n{0} {1} {0}\n'.format('-' * 20, col))
+            f.write('\n{}\n'.format(prod_dict[col]))
+            f.write('\n{0} END {1} {0}\n'.format('-' * 20, col))
+        f.close()
+    # with open (os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv")) as f:
+    #     for t in f.readlines():
+    #         logger.info(t)
+    #         break
+    #
+    # tb_INFO_prod = """
+    #     CREATE TABLE if not exists INFO_PRODUTTORE
+    #     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+    #     id_fir VARCHAR(1024) NOT NULL,
+    #     a_rag_soc_prod VARCHAR(1024) NOT NULL,
+    #     a_prov_prod VARCHAR(1024) NOT NULL,
+    #     a_comune_prod VARCHAR(1024) NOT NULL,
+    #     a_via_prod VARCHAR(1024) NOT NULL,
+    #     a_cap_prod INTEGER NOT NULL);
+    # """
+    #
+    # conn = sqlite3.connect(os.path.join(DB_PATH, 'OCR_MT.db'))
+    # cur = conn.cursor()
+    # cur.execute(tb_INFO_prod)
+    #
+    # for row in df_prod.itertuples():
+    #     q = """
+    #         INSERT INTO INFO_PRODUTTORE(id_fir, a_rag_soc_prod, a_prov_prod, a_comune_prod, a_via_prod, a_cap_prod)
+    #         VALUES ("{0}","{1}","{2}","{3}","{4}","{5}")
+    #     """.format(row[0], row[1], row[2], row[3], row[4], row[5])
+    #     cur.execute(q)
+    # conn.commit()
+    #
+    #
+    # q = """
+    #     SELECT * FROM {table}
+    #     ORDER BY id_fir ASC
+    # """.format(table='INFO_PRODUTTORI')
+
+
 if __name__ == '__main__':
     logger.info('{0} INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI {0}'.format('!' * 20))
     start_time = time.time()
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # FAI DATAFRAME INFO_FIR_COMPLETO
-    load_files = ['96619_COBAT']#os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
+    load_files = ['96633_RFW_588326_19']#os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
     files = []
+    write_info_produttori()
+    quit()
     # SE FILES CARICATI HANNO TANTI "_" ALLORA NE CONSIDERO SOLO UNO PER SEMPLICITA'
     for load_file in load_files:
         logger.info("VERIFICO IDENEITA' CARATTERI PER FILE {}".format(load_file))
