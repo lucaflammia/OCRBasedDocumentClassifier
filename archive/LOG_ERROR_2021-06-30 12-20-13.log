@@ -1,5 +1,0 @@
-ERROR REPORT DATETIME 2021-06-30 12:20:19.106299-------------------- ERROR IN FILE 98161_DUA61283820202020 --------------------
-[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1267 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1206 in process_image>, <FrameSummary file C:\Users\Utente\AppData\Local\Programs\Python\Python37\lib\site-packages\pdf2image\pdf2image.py, line 97 in convert_from_path>, <FrameSummary file C:\Users\Utente\AppData\Local\Programs\Python\Python37\lib\site-packages\pdf2image\pdf2image.py, line 472 in pdfinfo_from_path>]
-Exception - Unable to get page count.
-I/O Error: Couldn't open file 'C:\Users\Utente\Documents\Multitraccia\Progetti\Cobat\OCR_development\FIR_BULK\jpg_archive\98161_DUA61283820202020.pdf': No such file or directory.
-

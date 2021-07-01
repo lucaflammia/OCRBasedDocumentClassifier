@@ -1,3 +1,0 @@
-ERROR REPORT DATETIME 2021-06-29 12:33:53.161218-------------------- ERROR IN FILE 96449_doc20210105094602172380 --------------------
-[<FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 1241 in <module>>, <FrameSummary file C:/Users/Utente/Documents/Multitraccia/Progetti/Cobat/OCR_development/NEW_OCR/main_OCR.py, line 127 in get_dataframe>]
-Exception - name 'int64' is not defined

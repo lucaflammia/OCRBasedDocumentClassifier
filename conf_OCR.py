@@ -38,7 +38,7 @@ INFO_FIR = {
                 'ragione', 'sociale', 'codice', 'fiscale', 'denominazione', 'unita', 'locale', 'data', 'sede',
                 'indirizzo', 'destinazione', 'rifiuti', 'formulario', 'ministero', 'aree', 'ambiente', 'effettiva',
                 'argine', 'pieve', 'regione', 'autorizzazione', 'emissione', 'allegato', 'legale', 'resto', 'alle',
-                'maggio', 'febbraio', 'ambiente', 'sensi'
+                'maggio', 'febbraio', 'ambiente', 'sensi', 'codi', 'decreto'
             ],
             'TIPO_B': ['batterie', 'identificazione', 'aprile', 'obbligatorio', 'rifiuto', 'parte', 'soggetta',
                        'esauste', 'coordinamento', 'detentore', 'agucchi', 'destinatario', 'direzione', 'sede',
@@ -171,7 +171,7 @@ COMMON_FIR_INFO = {
                '80005370137', 'bianchi', 'pneumatici', 'deambrosis', 'maurizio', 'san', 'pietro', 'casorzo', '14032',
                'elettrauto', 'auto', 'lunger', 'welschnofen', 'levante', 'nova', 'gerenzano', 'inglesina', '21040',
                'milano', 'snc', 'sea', 'valle', 'camonica', 'rigamonti', 'darfo', 'servizi', 'mollo', 'sonico',
-               'isola', 'baiso', 'europa', 'cem', 'pessano', 'bornago'],
+               'isola', 'baiso', 'europa', 'cem', 'pessano', 'bornago', 'caserta'],
     'TIPO_B': ['newave'],
     'TIPO_C': ['srl', 'cavagna', 'toscanini', 'renato', 'caorso', '43010', 'fontevivo', 'pontetaro',
                '29012', 'maggio', '01103640338', 'ecologia', 'autoservice', 'melissano', 'pontenure', '29010'
@@ -238,8 +238,8 @@ class CreazioneDatabase:
         """
         self.cur.execute(self.tb_OCR_prod)
 
-        self.tb_INFO_FIR = """
-            CREATE TABLE if not exists INFO_FIR (
+        self.tb_OCR_FIR = """
+            CREATE TABLE if not exists OCR_FIR (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             file VARCHAR(255) NOT NULL,
             ocr_size VARCHAR(255) NOT NULL,
@@ -249,7 +249,7 @@ class CreazioneDatabase:
             ocr_racc VARCHAR(255) NOT NULL,
             ts TIMESTAMP);
         """
-        self.cur.execute(self.tb_INFO_FIR)
+        self.cur.execute(self.tb_OCR_FIR)
 
         self.tb_COMMON_WORDS = """
             CREATE TABLE if not exists COMMON_WORDS (
