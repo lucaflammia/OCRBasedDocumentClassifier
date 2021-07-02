@@ -1071,7 +1071,7 @@ class GetFileInfo:
         accepted_words = set()
         for k, lst in self.full_info['PRODUTTORI'].items():
             for elem in lst:
-                if len(elem) >= 4:
+                if len(elem) >= 4 and re.search('[aeiou]$', elem):
                     accepted_words.add(elem)
 
         # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
@@ -1130,7 +1130,7 @@ class GetFileInfo:
                     # CERCO SE PAROLA APPARTIENE ALLA LINGUA ITALIANA
                     chk = d_it.check(rw)
                     # self.logger.info('CONTROLLO APPARTENENZA {0} ALLA LINGUA ITALIANA -> {1}'.format(rw, chk))
-                    if chk or rw in COMMON_FIR_INFO.get('{}'.format(self.tipologia)):
+                    if chk or rw in accepted_words:
                         foo.add(rw)
 
             # SE IL SET RISULTA VUOTO LO CANCELLO
@@ -1399,7 +1399,7 @@ if __name__ == '__main__':
     start_time = time.time()
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # FAI DATAFRAME INFO_FIR_COMPLETO
-    load_files = ['96619_COBAT']  # os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
+    load_files = ['105185_448823']  # os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
     files = []
     # full_info = read_full_info(info='PRODUTTORI')
     # # write_info_produttori_to_csv(full_info)
