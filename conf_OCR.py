@@ -32,23 +32,19 @@ INFO_FIR = {
             'INIZ': ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale'],
             'FIN': ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'aut/albo']
         },
-        'NO_WORD_OCR': {
-            'TIPO_A': [
-                'produttore', 'detentore', 'registro', 'numero', 'luogo', 'destinatario', 'albo', 'trasportatore',
-                'ragione', 'sociale', 'codice', 'fiscale', 'denominazione', 'unita', 'locale', 'data', 'sede',
-                'indirizzo', 'destinazione', 'rifiuti', 'formulario', 'ministero', 'aree', 'ambiente', 'effettiva',
-                'argine', 'pieve', 'regione', 'autorizzazione', 'emissione', 'allegato', 'legale', 'resto', 'alle',
-                'maggio', 'febbraio', 'ambiente', 'sensi', 'codi', 'decreto'
-            ],
-            'TIPO_B': ['batterie', 'identificazione', 'aprile', 'obbligatorio', 'rifiuto', 'parte', 'soggetta',
-                       'esauste', 'coordinamento', 'detentore', 'agucchi', 'destinatario', 'direzione', 'sede',
-                       'trasportatore', 'serie', 'stoccaggio', 'rare', 'provvisorio', 'amministrativa',
-                       'amministrazione', 'concessionaria', 'formulario', 'registro', 'numero'],
-            'TIPO_C': ['identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero',
-                       'maggio'],
-            'TIPO_D': ['registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo',
-                       'successive', 'modifiche', 'integrazioni', 'detentore']
-        }
+        'NO_WORD_OCR': [
+            'produttore', 'detentore', 'registro', 'numero', 'luogo', 'destinatario', 'albo', 'trasportatore',
+            'ragione', 'sociale', 'codice', 'fiscale', 'denominazione', 'unita', 'locale', 'data', 'sede',
+            'indirizzo', 'destinazione', 'rifiuti', 'formulario', 'ministero', 'aree', 'ambiente', 'effettiva',
+            'argine', 'pieve', 'regione', 'autorizzazione', 'emissione', 'allegato', 'legale', 'resto', 'alle',
+            'maggio', 'febbraio', 'ambiente', 'sensi', 'codi', 'decreto', 'batterie', 'identificazione', 'aprile',
+            'obbligatorio', 'rifiuto', 'parte', 'soggetta', 'esauste', 'coordinamento', 'detentore', 'agucchi',
+            'destinatario', 'direzione', 'sede', 'trasportatore', 'serie', 'stoccaggio', 'rare', 'provvisorio',
+            'amministrativa', 'amministrazione', 'concessionaria', 'formulario', 'registro', 'numero',
+            'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
+            'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
+            'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute'
+        ]
     },
     'TRASP': {
         'TEXT': 'TRASPORTATORE',

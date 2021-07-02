@@ -53,7 +53,7 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
 
 
 class GetFileInfo:
@@ -809,7 +809,17 @@ class GetFileInfo:
 
             if (len(id_coor) == 0 and ii == 0) or (len(id_coor) == 1 and ii == 1):
                 self.logger.error('RICERCA ZONA OCR NON CORRETTA')
-                self.logger.error('TROVATA SOLO PAROLA ZONA INTERMEDIA {}'.format([v[1] for v in id_coor.values()][0]))
+                try:
+                    self.logger.error('TROVATA SOLO PAROLA ZONA INTERMEDIA {}'
+                                      .format([v[1] for v in id_coor.values()][0]))
+                except Exception:
+                    self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
+                # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
+                img = Image.open(self.file)
+                img_copy = img.copy()
+                img.close()
+                copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
+                img_copy.save(copy_filepath, 'png')
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
@@ -1075,7 +1085,7 @@ class GetFileInfo:
                     accepted_words.add(elem)
 
         # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
-        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']['TIPO_A']))
+        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
                              + COMMON_FIR_INFO[self.tipologia])
 
         # TRATTENGO ALCUNE PAROLE SPECIFICHE
@@ -1085,7 +1095,7 @@ class GetFileInfo:
                     rwords_lst[ii] = rword
                     continue
 
-                if len(rword) == 1 or (rword in INFO_FIR[info.upper()]['NO_WORD_OCR']['{}'.format(self.tipologia)]):
+                if len(rword) == 1 or (rword in INFO_FIR[info.upper()]['NO_WORD_OCR']):
                     # RIMUOVO ELEMENTO MANTENDO POSIZIONE MA INSERENDO STRINGA VUOTA DA ELIMINARE ALLA FINE
                     rwords_lst[ii] = ''
                     continue
@@ -1397,9 +1407,17 @@ def write_info_produttori_to_csv(prod_dict):
 if __name__ == '__main__':
     logger.info('{0} INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI {0}'.format('!' * 20))
     start_time = time.time()
+
+    # for elem in os.listdir(IMAGE_PATH):
+    #     if not elem.endswith('.jpg'):
+    #         os.rename(os.path.join(IMAGE_PATH, elem), os.path.join(IMAGE_PATH, elem + '.jpg'))
+
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
-    # FAI DATAFRAME INFO_FIR_COMPLETO
-    load_files = ['105185_448823']  # os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
+    # MANTIENI ESTENSIONE FILE .jpg!!!!
+    load_files_tmp = os.listdir(IMAGE_PATH)[20:2000]#enumerate(os.listdir(IMAGE_PATH))
+    load_files = []
+    for elem in load_files_tmp:
+        load_files.append(elem.split('.jpg')[0])
     files = []
     # full_info = read_full_info(info='PRODUTTORI')
     # # write_info_produttori_to_csv(full_info)
