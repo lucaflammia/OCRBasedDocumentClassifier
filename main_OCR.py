@@ -40,8 +40,6 @@ LOGFILE = conf_OCR.LOGFILE
 LOGFILE_ERROR = conf_OCR.LOGFILE_ERROR
 TIPOLOGIA_FIR = conf_OCR.TIPOLOGIA_FIR
 
-COMMON_FIR_INFO = conf_OCR.COMMON_FIR_INFO
-
 DPI = conf_OCR.DPI
 
 format = '%(asctime)s : %(name)s : %(levelname)s : %(message)s'
@@ -78,7 +76,8 @@ class GetFileInfo:
         self.produttore = 'NOT FOUND'
         self.trasportatore = 'NOT FOUND'
         self.raccoglitore = 'NOT FOUND'
-        self.info_data = {}
+        self.ocr_fir = {}
+        self.full_info = {}
 
     def word_like_cond(self, target, fieldname='parola', perc=False):
         wcond = {}
@@ -209,16 +208,17 @@ class GetFileInfo:
         res = self.check_file(table='OCR_FIR')
         # INSERISCO PAROLE DA ACCETTARE QUALORA VENISSERO INDIVIDUATE DURANTE OCR
         # self.insert_common_words(info_fir='PRODUTTORE')
-        #self.get_full_info(full_info='PRODUTTORE')
+        # self.get_full_info(full_info='PRODUTTORE')
+        self.full_info = self.read_full_info(info='PRODUTTORI')
         if res:
             self.logger.info("INFO GIA' ACQUISITE. ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
-            return self.info_data
+            return self.ocr_fir
         # IN CASO DI TIPOLOGIA TROVATA E NON ANALIZZATA, SI CERCANO LE INFO
         for inf in ['prod', 'trasp', 'racc']:
             self.get_info_fir(inf)
             break
 
-        return self.info_data
+        return self.ocr_fir
 
     def esclusione_parole_tipologia(self, tipo, word_like, pid):
 
@@ -523,7 +523,7 @@ class GetFileInfo:
                                      .format(self.file_only))
                 else:
                     self.logger.info('OCR INIZIALE FILE {} VALIDO CON ROTAZIONE {}'
-                                 .format(self.file_only, rot))
+                                     .format(self.file_only, rot))
                 break
 
     def check_file(self, table='files_WEB', rotation=False):
@@ -562,7 +562,7 @@ class GetFileInfo:
         res = self.cur.execute(q).fetchall()
         if table == 'OCR_FIR' and res:
             item = res[0]
-            self.info_data = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6], 'ocr_size': item[2]}
+            self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6], 'ocr_size': item[2]}
 
         return res
 
@@ -835,7 +835,7 @@ class GetFileInfo:
         NTENTATIVI = 4
 
         # SECONDO TENTATIVO OCR RITAGLIO --> ALLARGO RITAGLIO E RIPROVO
-        if not self.info_data:
+        if not self.ocr_fir:
             for itentativo in range(NTENTATIVI):
                 # CAMBIO SIZE DEL RITAGLIO
                 self.delete_table(table='ocr', info_fir=INFO_FIR[info.upper()]['TEXT'])
@@ -846,12 +846,12 @@ class GetFileInfo:
                 # PER WIN OCR TESSERACT -->  'PROD': [0, 0, self.width, self.height / 3]
                 if itentativo % 2 == 0:
                     itime = 1
-                    molt = itentativo//2
+                    molt = itentativo // 2
                 else:
                     itime = - 1
                     molt = itentativo // 2
 
-                cutoff_width = ((molt+1)*itime*5)
+                cutoff_width = ((molt + 1) * itime * 5)
 
                 words, id_st, id_fin = self.ocr_analysis_ritaglio(info, cutoff_width=cutoff_width)
 
@@ -867,10 +867,10 @@ class GetFileInfo:
 
                 self.check_ritaglio(delim_words, info)
                 # SE TROVO RISULTATO ESCO
-                if self.info_data:
+                if self.ocr_fir:
                     break
 
-        if not self.info_data:
+        if not self.ocr_fir:
             # NEL CASO NON ABBIA RISULTATI CAMBIO PARAMETRI OCR DI PYTESSEACT (--oem 3 --psm 6)  E RIPETO
             for itent in range(2):
                 self.delete_table(table='ocr', info_fir=INFO_FIR[info.upper()]['TEXT'])
@@ -901,12 +901,12 @@ class GetFileInfo:
 
                 self.check_ritaglio(delim_words, info)
                 # SE TROVO RISULTATO ESCO
-                if self.info_data:
+                if self.ocr_fir:
                     break
 
-        if self.info_data:
+        if self.ocr_fir:
             self.logger.info('INSERIMENTO IN TABELLA OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']))
-            self.insert_info_db(self.info_data)
+            self.insert_info_db(self.ocr_fir)
 
     def check_ocr_files(self, info_ocr=None):
         q = """
@@ -940,34 +940,95 @@ class GetFileInfo:
             missed_ocr = set(files_lst) - set(ocr_files_lst)
             self.logger.info('OCR MANCANTE PER I SEGUENTI FILES: {}'.format(missed_ocr))
 
-    def check_common_word(self, com_words, tipol):
-        words = "'" + "','".join(com_words) + "'"
-        q = """
-            SELECT parola
-            FROM COMMON_WORDS
-            WHERE 
-            parola in ({words}) AND
-            tipologia = '{tipologia}'
-        """.format(words=words, tipologia=tipol)
-        res = self.cur.execute(q).fetchall()
-        return res
+    def read_full_info(self, info=''):
+        full_info_dict = {
+            'PRODUTTORI': {
+            }
+        }
+        stopwords = []
+        with open(os.path.join(PRED_PATH, 'stopwords.txt'), 'r', encoding='utf-8') as f:
+            text = f.readlines()
+            for t in text:
+                stopwords.append(t.replace('\n', ''))
+            f.close()
 
-    def insert_common_words(self, info_fir=''):
-        com_words = COMMON_FIR_INFO[self.tipologia]
-        res = self.check_common_word(com_words, self.nome_tipologia)
-        word_lst = []
-        if res:
-            for row in res:
-                word_lst.append(row[0])
-        word_insert = list(set(com_words) - set(word_lst))
-        for com_word in word_insert:
-            q = """
-                INSERT INTO COMMON_WORDS(parola,tipologia,info,ts)
-                        VALUES ("{com_word}","{tipologia}", "{info}", CURRENT_TIMESTAMP)
-            """.format(com_word=com_word, tipologia=TIPO_FIR[self.tipologia]['NAME'], info=info_fir)
+        if not os.path.exists(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv")):
+            df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='utf-8',
+                             error_bad_lines=False, skiprows=1, sep=';')
+            logger.info('INDEXES = {}'.format(df.columns))
+        else:
+            df = pd.read_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"), encoding='utf-8',
+                             error_bad_lines=False, sep=',')
 
-            self.cur.execute(q)
-            self.conn.commit()
+        if info == 'PRODUTTORI':
+            for col in ['a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']:
+                if col == 'a_cap_prod':
+                    df[col] = df[col].fillna(0)
+                    df[col] = df[col].astype(int)
+                    continue
+                df[col] = df[col].fillna('')
+                df[col] = df[col].astype(str)
+                # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
+            data_prod = {
+                'id_fir': df['id_fir'].to_numpy(),
+                'a_rag_soc_prod': df['a_rag_soc_prod'].to_numpy(),
+                'a_prov_prod': df['a_prov_prod'].to_numpy(),
+                'a_comune_prod': df['a_comune_prod'].to_numpy(),
+                'a_via_prod': df['a_via_prod'].to_numpy(),
+                'a_cap_prod': df['a_cap_prod'].to_numpy()
+            }
+            df_prod = pd.DataFrame(data=data_prod)
+            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"))
+
+            prod_dict = {}
+            for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
+                df_prod[col] = df_prod[col].apply(lambda cl: cl.lower())
+                val_lst = df_prod[col].values
+                words_prod = set()
+                for txt in val_lst:
+                    # logger.info(txt)
+                    words_lst = [re.sub('\W', '', p) for p in word_tokenize(txt) if p not in stopwords
+                                 and p not in string.punctuation and not re.search('\d', p)
+                                 and not (len(p) <= 2 and re.search('\W', p))]
+                    # logger.info(words_lst)
+                    words_prod.update(words_lst)
+
+                val_set = set(parola for parola in words_prod)
+                foo = [el for el in val_set]
+                prod_dict[col] = sorted(foo)
+                # logger.info('{0} : {1} - {2}'.format(col, prod_dict[col][-30:-1], len(prod_dict[col])))
+                full_info_dict[info][col] = prod_dict[col]
+
+        return full_info_dict
+    
+    # def check_common_word(self, com_words, tipol):
+    #     words = "'" + "','".join(com_words) + "'"
+    #     q = """
+    #         SELECT parola
+    #         FROM COMMON_WORDS
+    #         WHERE
+    #         parola in ({words}) AND
+    #         tipologia = '{tipologia}'
+    #     """.format(words=words, tipologia=tipol)
+    #     res = self.cur.execute(q).fetchall()
+    #     return res
+    #
+    # def insert_common_words(self, info_fir=''):
+    #     com_words = COMMON_FIR_INFO[self.tipologia]
+    #     res = self.check_common_word(com_words, self.nome_tipologia)
+    #     word_lst = []
+    #     if res:
+    #         for row in res:
+    #             word_lst.append(row[0])
+    #     word_insert = list(set(com_words) - set(word_lst))
+    #     for com_word in word_insert:
+    #         q = """
+    #             INSERT INTO COMMON_WORDS(parola,tipologia,info,ts)
+    #                     VALUES ("{com_word}","{tipologia}", "{info}", CURRENT_TIMESTAMP)
+    #         """.format(com_word=com_word, tipologia=TIPO_FIR[self.tipologia]['NAME'], info=info_fir)
+    #
+    #         self.cur.execute(q)
+    #         self.conn.commit()
 
     def check_ritaglio(self, delim_words, info):
         idx = []
@@ -1007,10 +1068,20 @@ class GetFileInfo:
 
         self.logger.info('RANGE PAROLE TROVATE ZONA {} : {}'.format(INFO_FIR[info.upper()]['TEXT'], rwords))
 
+        accepted_words = set()
+        for k, lst in self.full_info['PRODUTTORI'].items():
+            for elem in lst:
+                if len(elem) >= 4:
+                    accepted_words.add(elem)
+
+        # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
+        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']['TIPO_A']))
+                             + COMMON_FIR_INFO[self.tipologia])
+
         # TRATTENGO ALCUNE PAROLE SPECIFICHE
         for rwords_lst in rwords:
             for ii, rword in enumerate(rwords_lst):
-                if rword in COMMON_FIR_INFO[self.tipologia]:
+                if rword in accepted_words:
                     rwords_lst[ii] = rword
                     continue
 
@@ -1020,24 +1091,24 @@ class GetFileInfo:
                     continue
 
                 # FAI RICERCA PAROLA LIKE DEI COMMON_FIR_INFO
-                if len(rword) > 3:
-                    common_word_like = self.word_like_cond(rword)
-                    clike = '(' + ' or '.join(common_word_like[rword]) + ')'
-                    q = """
-                        SELECT parola 
-                        FROM COMMON_WORDS
-                        WHERE
-                        {clike} AND
-                        tipologia = '{tipologia}'
-                        LIMIT 1;
-                    """.format(clike=clike, tipologia=self.nome_tipologia)
-                    res = self.cur.execute(q).fetchall()
-                    if res:
-                        rword = res[0][0]
-                        rwords_lst[ii] = rword
-                        if rwords_lst[ii] in INFO_FIR[info.upper()]['NO_WORD_OCR']['{}'.format(self.tipologia)]:
-                            rwords_lst[ii] = ''
-                        continue
+                # if len(rword) > 3:
+                #     common_word_like = self.word_like_cond(rword)
+                #     clike = '(' + ' or '.join(common_word_like[rword]) + ')'
+                #     q = """
+                #         SELECT parola
+                #         FROM COMMON_WORDS
+                #         WHERE
+                #         {clike} AND
+                #         tipologia = '{tipologia}'
+                #         LIMIT 1;
+                #     """.format(clike=clike, tipologia=self.nome_tipologia)
+                #     res = self.cur.execute(q).fetchall()
+                #     if res:
+                #         rword = res[0][0]
+                #         rwords_lst[ii] = rword
+                #         if rwords_lst[ii] in INFO_FIR[info.upper()]['NO_WORD_OCR']['{}'.format(self.tipologia)]:
+                #             rwords_lst[ii] = ''
+                #         continue
 
                 rwords_lst[ii] = rword
                 if (not (re.search('[aeiou]$', rword) and len(rword) > 3)) \
@@ -1113,7 +1184,7 @@ class GetFileInfo:
         self.logger.info('RANGE PAROLE SELEZIONATE ZONA {} : {}'.format(INFO_FIR[info.upper()]['TEXT'], rws))
         self.logger.info('\n{0} FINE RICERCA ZONA {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
 
-        self.info_data = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
+        self.ocr_fir = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
                           'ocr_size': '( {} - {} )'.format(self.crop_width, self.crop_height)}
 
     def get_grayscale(self, image):
@@ -1245,62 +1316,49 @@ def process_image(curr_file):
     return img
 
 
-def write_info_produttori():
-    stopwords = []
-    with open(os.path.join(PRED_PATH, 'stopwords.txt'), 'r', encoding='utf-8') as f:
-        text = f.readlines()
-        for t in text:
-            stopwords.append(t.replace('\n', ''))
-        f.close()
-    logger.info('stopwords {}'.format(stopwords))
-
-    df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='utf-8',
-                     error_bad_lines=False, skiprows=1, sep=';')
-    logger.info('INDEXES = {}'.format(df.columns))
-    for col in ['a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']:
-        if col == 'a_cap_prod':
-            df[col] = df[col].fillna(0)
-            df[col] = df[col].astype(int)
-            continue
-        df[col] = df[col].fillna('')
-        df[col] = df[col].astype(str)
-        # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
-    data_prod = {
-        'id_fir': df['id_fir'].to_numpy(),
-        'a_rag_soc_prod': df['a_rag_soc_prod'].to_numpy(),
-        'a_prov_prod': df['a_prov_prod'].to_numpy(),
-        'a_comune_prod': df['a_comune_prod'].to_numpy(),
-        'a_via_prod': df['a_via_prod'].to_numpy(),
-        'a_cap_prod': df['a_cap_prod'].to_numpy()
-    }
-    df_prod = pd.DataFrame(data=data_prod)
-    df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"))
-
-    prod_dict = {}
-    for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
-        df_prod[col] = df_prod[col].apply(lambda cl: cl.lower())
-        val_lst = df_prod[col].values
-        words_prod = set()
-        for txt in val_lst:
-            # logger.info(txt)
-            words_lst = [re.sub('\W', '', p.replace("'", '')) for p in word_tokenize(txt) if p not in stopwords
-                    and p not in string.punctuation and not re.search('\d', p)
-                         and not (len(p) <= 2 and re.search('\W', p))]
-            # logger.info(words_lst)
-            words_prod.update(words_lst)
-
-        val_set = set(parola for parola in words_prod)
-        foo = [el for el in val_set]
-        prod_dict[col] = sorted(foo)
-        logger.info('{0} : {1} - {2}'.format(col, prod_dict[col][-30:-1], len(prod_dict[col])))
-
+# DA MODIFICARE SE VUOI USARLO
+def write_info_produttori_to_csv(prod_dict):
     with open(os.path.join(PRED_PATH, 'SORTED_INFO_PROD.txt'), 'w') as f:
         f.write('PAROLE NON BANALI IN ELENCO ALFABETICO PER OGNI CAMPO DEL PRODUTTORE\n')
         for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
             f.write('\n{0} {1} {0}\n'.format('-' * 20, col))
             f.write('\n{}\n'.format(prod_dict[col]))
             f.write('\n{0} END {1} {0}\n'.format('-' * 20, col))
+
         f.close()
+
+
+# def read_full_info(info=''):
+#     full_info = {
+#         'PRODUTTORI': {
+#             'a_rag_soc_prod': [],
+#             'a_comune_prod': [],
+#             'a_via_prod': []
+#         }
+#     }
+#     if info == 'PRODUTTORI':
+#         with open(os.path.join(PRED_PATH, 'SORTED_INFO_PROD.txt'), 'r') as f:
+#             foo = f.read()
+#             f.close()
+#
+#         logger.info(foo)
+#         quit()
+#
+#         for item in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
+#             flag = False
+#             for elem in foo:
+#                 start_info = elem.startswith('{0} {1} {0}'.format('-'*20, item))
+#                 end_info = elem.startswith('{0} END {1} {0}'.format('-'*20, item))
+#                 if start_info or flag is True:
+#                     elem = re.sub("[\[\]\n]", "", elem)
+#                     if elem and not (start_info or end_info):
+#                         full_info[info][item].append(elem)
+#                     flag = True
+#                     if end_info:
+#                         break
+#             logger.info(len(full_info[info][item][0]))
+#
+#     return full_info
     # with open (os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv")) as f:
     #     for t in f.readlines():
     #         logger.info(t)
@@ -1341,10 +1399,21 @@ if __name__ == '__main__':
     start_time = time.time()
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # FAI DATAFRAME INFO_FIR_COMPLETO
-    load_files = ['96633_RFW_588326_19']#os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
+    load_files = ['96619_COBAT']  # os.listdir(IMAGE_PATH)[:1000]#enumerate(os.listdir(IMAGE_PATH))
     files = []
-    write_info_produttori()
-    quit()
+    # full_info = read_full_info(info='PRODUTTORI')
+    # # write_info_produttori_to_csv(full_info)
+    # accepted_words = set()
+    # foo = []
+    # for k, lst in full_info['PRODUTTORI'].items():
+    #     for el in lst:
+    #         foo.append(el)
+    #         accepted_words.add(el)
+    # logger.info(len(accepted_words))
+    # # logger.info(accepted_words)
+    # # for el in accepted_words:
+    # #     logger.info(el)
+    # quit()
     # SE FILES CARICATI HANNO TANTI "_" ALLORA NE CONSIDERO SOLO UNO PER SEMPLICITA'
     for load_file in load_files:
         logger.info("VERIFICO IDENEITA' CARATTERI PER FILE {}".format(load_file))
@@ -1372,9 +1441,9 @@ if __name__ == '__main__':
             process_image(file_only)
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
             info = GetFileInfo(file_png, logger=logger, web=True)
-            info_data = info.find_info()
+            ocr_fir = info.find_info()
             logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, file_only))
-            logger.info("\nFILE {0} : {1} {2}\n".format(file_only, info.nome_tipologia, info_data))
+            logger.info("\nFILE {0} : {1} {2}\n".format(file_only, info.nome_tipologia, ocr_fir))
             logger.info('\n{0} FINE SOMMARIO FILE {1} {0}\n'.format('@' * 20, file_only))
             if os.path.exists(os.path.join(file_png)):
                 os.remove(file_png)
