@@ -46,14 +46,17 @@ format = '%(asctime)s : %(name)s : %(levelname)s : %(message)s'
 logging.basicConfig(format=format)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+# logging.basicConfig(filename=os.path.join(ARCH_PATH, LOGFILE), filemode='w', format=format)
 output_file_handler = logging.FileHandler(os.path.join(ARCH_PATH, LOGFILE), mode='w', encoding='utf-8')
 stdout_handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter(format)
+output_file_handler.setFormatter(formatter)
 logger.addHandler(output_file_handler)
 # logger.addHandler(stdout_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 class GetFileInfo:
@@ -70,6 +73,7 @@ class GetFileInfo:
         self.height = None
         self.crop_width = None
         self.crop_height = None
+        self.rotated_file = False
         self.flt = set(['GRAY'])
         self.nome_tipologia = 'NC'
         self.tipologia = 'NC'
@@ -152,6 +156,9 @@ class GetFileInfo:
         # CREA TABELLE FROM SCRATCH SU HEROKU E FAI PROVE
         CreazioneDatabase(self.db, self.web)
         res = self.check_file()
+        # CERCA SE IL FILE E' STATO SALVATO CON ROTAZIONE
+        if not res:
+            res = self.check_file(rotation=True)
         if not res:
             self.logger.info('FILE NON TROVATO NEL DB')
             self.logger.info('ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
@@ -168,6 +175,11 @@ class GetFileInfo:
 
         if not self.tipologia == 'NC':
             self.logger.info("TIPOLOGIA GIA' INDIVIDUATA --> {}".format(self.nome_tipologia))
+            # SE HO GIA' FIR ANALIZZATO ED E' STATO RUOTATO ALLORA MODIFICO IL FILENAME CON AGGIUNTA "_rot"
+            if self.rotated_file:
+                self.logger.info(sel)
+                rot = self.file_only.split('_')[-1]
+                self.update_rotated_filename(rot)
         else:
             # INDIVIDUO LA TIPOLOGIA DEL FIR ANALIZZATO
             for tipo in TIPO_FIR:
@@ -375,13 +387,19 @@ class GetFileInfo:
         # PER INFO PYTESSERACT
         # https://jaafarbenabderrazak-info.medium.com/ocr-with-tesseract-opencv-and-python-d2c4ec097866
         # BEST PRACTICES https://ai-facets.org/tesseract-ocr-best-practices/
-        orig_filepath = os.path.join(BASEPATH, 'images', '{0}.png'.format(self.file_only))
+        orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
         img = Image.open(orig_filepath)
         left = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][0]
         top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
 
-        right = self.width + 5 + cutoff_width  # SCELGO UN RITAGLIO PER TUTTA
-        # LA LARGHEZZA DEL FIR + 5 (SCELTA CHE PORTA SOLO A MIGLIORARE OCR) + CUTOFF INSERITO
+        if not self.rotated_file:
+            right = self.width + 5 + cutoff_width  # SCELGO UN RITAGLIO PER TUTTA
+            # LA LARGHEZZA DEL FIR + 5 (SCELTA CHE PORTA SOLO A MIGLIORARE OCR) + CUTOFF INSERITO
+        else:
+            # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN LARGHEZZA ED ALTEZZA CHE NON SONO REALI
+            # DIMINUISCO DI 1000 IN LARGHEZZA E DI 300 IN ALTEZZA
+            top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1] + 300
+            right = self.width - 1000 + 5 + cutoff_width
 
         # PER FIR - TRS ALTEZZA RITAGLIO PROD E' NEL RANGE [650,1050] per SIZE STANDARD INPUT FIR di 3334
         # MANTENGO RAPPORTO 650 / 3334 = 0.1949.. NEL CASO DI ALTEZZE DIVERSE IN INPUT
@@ -457,6 +475,25 @@ class GetFileInfo:
 
         return parole, id_st, id_fin
 
+    def update_rotated_filename(self, rot):
+        orig_file = self.file
+        orig_file_only = self.file_only
+        self.logger.info('FILE PATH PRIMA ROTAZIONE {}'.format(self.file))
+        self.file = self.file.split('.png')[0] + '_rot{}'.format(rot) + '.png'
+        # split('_')[3] poichè considero stringa aggiuntiva '_rot'
+        if sys.platform == 'win32':
+            self.file_only = '_'.join(self.file.split('\\')[-1].split('.')[0].split('_')[:3])
+        else:
+            self.file_only = '_'.join(self.file.split('/')[-1].split('.')[0].split('_')[:3])
+        self.logger.info('NUOVO NOME DOPO ROTAZIONE : {}'.format(self.file_only))
+        q = """
+            UPDATE files_WEB SET file = '{rot_file}'
+            WHERE file = '{orig_file}'
+        """.format(rot_file=self.file_only, orig_file=orig_file_only)
+        self.cur.execute(q)
+        self.conn.commit()
+        os.remove(os.path.join(orig_file))
+
     def ocr_analysis(self, img):
         # SEE https://github.com/faustomorales/keras-ocr/issues/65
         # Disable GPU, use CPU only
@@ -517,13 +554,14 @@ class GetFileInfo:
             self.logger.info('PERCENTUALE RIGHE SOSPETTE (LUNGHEZZA 0 OPPURE 1) : {}%'.format(perc_tilted_rows))
 
             if not perc_tilted_rows > 60:
-                img.save(self.file)
-                if rot == 0:
-                    self.logger.info('OCR INIZIALE FILE {} VALIDO CON ROTAZIONE NULLA'
-                                     .format(self.file_only))
-                else:
+                if self.rotated_file:
+                    self.update_rotated_filename(rot)
                     self.logger.info('OCR INIZIALE FILE {} VALIDO CON ROTAZIONE {}'
                                      .format(self.file_only, rot))
+                else:
+                    self.logger.info('OCR INIZIALE FILE {} VALIDO CON ROTAZIONE NULLA'
+                                     .format(self.file_only))
+                img.save(self.file)
                 break
 
     def check_file(self, table='files_WEB', rotation=False):
@@ -535,12 +573,23 @@ class GetFileInfo:
                 WHERE file = '{file}'
             """.format(table=table, file=self.file_only)
         elif table == 'files_WEB':
-            q = """
-                SELECT *
-                FROM {table}
-                WHERE file = '{file}' AND
-                tipologia != 'NC'
-            """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
+            if rotation:
+                q = """
+                    SELECT *
+                    FROM {table}
+                    WHERE file like '{file}_rot%'
+                    AND
+                    tipologia != 'NC'
+                """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
+                self.rotated_file = True
+            else:
+                q = """
+                    SELECT *
+                    FROM {table}
+                    WHERE file = '{file}'
+                    AND
+                    tipologia != 'NC'
+                """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
         elif table == 'parole_WEB':
             if rotation:
                 q = """
@@ -560,6 +609,12 @@ class GetFileInfo:
            """.format(table1=table, table2='files_WEB' if self.web else 'files',
                       file=self.file_only)
         res = self.cur.execute(q).fetchall()
+        if table == 'files_WEB':
+            row = [elem for elem in res]
+            try:
+                self.file_only = row[0][1]
+            except Exception:
+                self.logger.info('RISULTATO NON TROVATO NEL DB CON ROTAZIONE = {}'.format(rotation))
         if table == 'OCR_FIR' and res:
             item = res[0]
             self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6], 'ocr_size': item[2]}
@@ -774,11 +829,12 @@ class GetFileInfo:
                     {sub_body} WHERE
                     file = '{file}' AND
                     {clike} AND
-                    div_y = '{divy}'
+                    div_y in ({divy})
                     ORDER BY p.id {ord}
                     LIMIT 1;
                 """.format(sub_body=self.qy.sub_body, file=self.file_only, clike=clike,
-                           divy='2-4' if info == 'trasp' else '1-4', ord='ASC' if info == 'prod' else 'DESC')
+                           divy="'1-4', '2-4'" if (info in ('trasp', 'racc')) or self.rotated_file else "'1-4'",
+                           ord='ASC' if info == 'prod' else 'DESC')
 
                 self.logger.debug('FILE {0} RICERCA BASE {1} : {2}'
                                   .format(self.file_only, INFO_FIR[info.upper()]['TEXT'], subq))
@@ -1216,6 +1272,8 @@ class GetFileInfo:
     def rotate_file(self, img, rot=0):
         self.logger.info('FILE {0} RUOTATO DI {1} GRADI'.format(self.file_only, rot))
         img_rot = img.rotate(rot, expand=True)
+        if not rot == 0:
+            self.rotated_file = True
         return img_rot
 
     def delete_table(self, table='', info_fir=''):
@@ -1413,8 +1471,8 @@ if __name__ == '__main__':
     #         os.rename(os.path.join(IMAGE_PATH, elem), os.path.join(IMAGE_PATH, elem + '.jpg'))
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
-    # MANTIENI ESTENSIONE FILE .jpg!!!!
-    load_files_tmp = os.listdir(IMAGE_PATH)[20:2000]#enumerate(os.listdir(IMAGE_PATH))
+    # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
+    load_files_tmp = ['96449_doc20210105094602172380.jpg']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in load_files_tmp:
         load_files.append(elem.split('.jpg')[0])
@@ -1460,11 +1518,11 @@ if __name__ == '__main__':
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
             info = GetFileInfo(file_png, logger=logger, web=True)
             ocr_fir = info.find_info()
-            logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, file_only))
-            logger.info("\nFILE {0} : {1} {2}\n".format(file_only, info.nome_tipologia, ocr_fir))
-            logger.info('\n{0} FINE SOMMARIO FILE {1} {0}\n'.format('@' * 20, file_only))
-            if os.path.exists(os.path.join(file_png)):
-                os.remove(file_png)
+            logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
+            logger.info("\nFILE {0} : {1} {2}\n".format(info.file_only, info.nome_tipologia, ocr_fir))
+            logger.info('\n{0} FINE SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
+            if os.path.exists(os.path.join(info.file)):
+                os.remove(info.file)
             # if ii == len(os.listdir(IMAGE_PATH)) - 1:
             #     info.check_ocr_files(info_ocr='prod')
         except Exception as e:
@@ -1478,5 +1536,4 @@ if __name__ == '__main__':
                 logf.close()
 
     logger.info('{0} FILES PROCESSATI IN {1} SECONDI'.format(len(files), time.time() - start_time))
-    logger.info('{0} ESECUZIONE SCANSIONE FORMULARI RIFIUTI '
-                'TERMINATA AL SEGUENTE ORARIO {1} {0}'.format('!' * 20, now))
+    logger.info('{0} ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA {0}'.format('!' * 20))
