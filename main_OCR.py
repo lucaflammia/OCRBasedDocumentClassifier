@@ -348,8 +348,7 @@ class GetFileInfo:
                 """.format(s00=txt[:2], s01=txt[-2:], s10=txt[2:-2], s20=txt[:3])
 
                 q = """
-                    {body}
-                    WHERE
+                    {body} WHERE
                     ({clike} OR {plike}) AND
                     p.id < {pid} + {did} AND
                     p.id > {pid} - {did} AND
@@ -536,7 +535,9 @@ class GetFileInfo:
         pipeline = keras_ocr.pipeline.Pipeline()
         # PROVO INIZIALMENTE OCR DEL FILE SENZA ROTAZIONE
         # SE HO RISULTATO CORRETTO ESCO DAL CICLO FOR
-        for rot in [0, 90, -90]:
+        # ROT 180 SIGNIFICA CHE SBAGLIANDO LA ROTAZIONE DI 90 DA UNA PARTE LA CORREGGO CON STESSA ROTAZIONE
+        # DALL'ALTRA PARTE
+        for rot in [0, 90, 180]:
             img = self.rotate_file(img, rot=rot)
             # CONSIDERO I RITAGLI (lunghezza / nw, altezza / nh)
             nw = 2
@@ -573,7 +574,18 @@ class GetFileInfo:
             self.insert_new_records_table(table='files_WEB', dpi=DPI)
             self.insert_new_records_table(data=data, table='parole_WEB', dpi=DPI)
 
-            # CHECK SE OCR RISULTA INADEGUATO POICHE' IL FILE E' RUOTATO
+            # CHECK SE OCR RISULTA INADEGUATO POICHE' IL FILE E' RUOTATO E NON LEGGO BENE PAROLE
+            # VERIFICANDO ESISTENZA DI ALMENO UNA PAROLA SENSATA
+            common_fir_words = ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale',
+                                'unita', 'locale', 'codice', 'fiscale', 'autorizzazione']
+            accepted_word = False
+            for par, (lu, ru, ld, rd), div_x, div_y in data:
+                if par in common_fir_words:
+                    self.logger.info('PAR {}'.format(par))
+                    accepted_word = True
+                    break
+            self.logger.info('RICERCA DI PAROLE COMUNI NEL FIR : ESITO -> {}'.format(accepted_word))
+            # TRAMITE PERCENTUALE DI RIGHE RUOTATE
             res = self.check_file(table='parole_WEB', rotation=True)
             for row in res:
                 tilted_rows = row[0]
@@ -581,7 +593,8 @@ class GetFileInfo:
             self.logger.info('PERCENTUALE RIGHE SOSPETTE (LUNGHEZZA 0 OPPURE 1) : {}%'.format(perc_tilted_rows))
 
             # SE LA PERCENTUALE DI RIGHE NON ACCETTATE E' INFERIORE AL 60% ALLORA ACCETTO IL RISULTATO
-            if not perc_tilted_rows > 60:
+            # E CONTEMPORANEAMENTE SE ESISTE ALMENO UNA PAROLA SENSATA
+            if (not perc_tilted_rows > 60) and (accepted_word):
                 if self.rotated_file:
                     self.update_rotated_filename(rot)
                     self.logger.info('OCR INIZIALE FILE {} VALIDO CON ROTAZIONE {}'
@@ -620,12 +633,12 @@ class GetFileInfo:
         elif table == 'parole_WEB':
             if rotation:
                 q = """
-                    SELECT count(parola) FROM parole_WEB p
+                    SELECT count(parola) FROM {table} p
                     LEFT JOIN files_WEB f 
                     ON (f.id=p.id_file)
                     WHERE file = '{file}' AND 
                     length(parola) in (0, 1);
-                """.format(file=self.file_only)
+                """.format(table=table, file=self.file_only)
         else:
             q = """
                SELECT *
@@ -1165,7 +1178,7 @@ class GetFileInfo:
         accepted_words = set()
         for k, lst in self.full_info['PRODUTTORI'].items():
             for elem in lst:
-                if len(elem) >= 4 and re.search('[aeiou]$', elem):
+                if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
                     accepted_words.add(elem)
 
         # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
@@ -1496,7 +1509,7 @@ if __name__ == '__main__':
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
-    load_files_tmp = ['96449_doc20210105094602172380.jpg']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
+    load_files_tmp = ['101646_fir09125-2020+800000.0001_']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in load_files_tmp:
         load_files.append(elem.split('.jpg')[0])
