@@ -43,7 +43,7 @@ INFO_FIR = {
             'amministrativa', 'amministrazione', 'concessionaria', 'formulario', 'registro', 'numero',
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
-            'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute'
+            'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara'
         ]
     },
     'TRASP': {
@@ -73,7 +73,7 @@ COMMON_NO_WORD = [("torinese", "1-4"), ("pericolosi", "1-4"), ('filippo', "1-4")
 TIPO_A = {
     'TEXT': ["formulario", "rifiuti"],
     'SIZE_OCR': [0, 0, 2356, 700],
-    'NO_WORD': [("identificazione", "1-4")] + COMMON_NO_WORD,
+    'NO_WORD': [("identificazione", "1-4"), ("recycling", "1-4"), ('systems', '1-4')] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []

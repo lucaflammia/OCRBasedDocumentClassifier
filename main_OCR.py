@@ -159,6 +159,8 @@ class GetFileInfo:
         # CERCA SE IL FILE E' STATO SALVATO CON ROTAZIONE
         if not res:
             res = self.check_file(rotation=True)
+            if res:
+                self.rotated_file = True
         if not res:
             self.logger.info('FILE NON TROVATO NEL DB')
             self.logger.info('ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
@@ -174,12 +176,23 @@ class GetFileInfo:
                         self.tipologia = key_tipo
 
         if not self.tipologia == 'NC':
-            self.logger.info("TIPOLOGIA GIA' INDIVIDUATA --> {}".format(self.nome_tipologia))
-            # SE HO GIA' FIR ANALIZZATO ED E' STATO RUOTATO ALLORA MODIFICO IL FILENAME CON AGGIUNTA "_rot"
+            self.logger.info("PER FILE {0} TIPOLOGIA GIA' INDIVIDUATA --> {1}"
+                             .format(self.file_only, self.nome_tipologia))
             if self.rotated_file:
-                self.logger.info(sel)
-                rot = self.file_only.split('_')[-1]
-                self.update_rotated_filename(rot)
+                # SE HO GIA' FIR ANALIZZATO CON ROTAZIONE ALLORA MODIFICO IL FILENAME AGGIUNGENDO DICITURA "_rot"
+                orig_filename = self.file_only.split('_rot')[0] + '.png'
+                self.logger.info('NOME PRIMA ROTAZIONE {}'.format(orig_filename))
+                img = Image.open(os.path.join(PNG_IMAGE_PATH, orig_filename))
+                img_copy = img.copy()
+                img.close()
+                copy_filepath = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
+                rot = int(self.file_only.split('_rot')[1])
+                img_copy = self.rotate_file(img_copy, rot=rot)
+                img_copy.save(copy_filepath, 'png')
+                os.remove(os.path.join(PNG_IMAGE_PATH, orig_filename))
+                # if self.rotated_file:
+                #     rot = self.file_only.split('_')[-1]
+                #     self.update_rotated_filename(rot)
         else:
             # INDIVIDUO LA TIPOLOGIA DEL FIR ANALIZZATO
             for tipo in TIPO_FIR:
@@ -265,7 +278,7 @@ class GetFileInfo:
 
         # PAROLA LONTANA DA QUELLE CERCATE (ES. "ROTTAMI") MA CHE,
         # SE TROVATA, ESCLUDE LA TIPOLOGIA (ES. "TIPOLOGIA A")
-        # ---- LA PAROLA INTRUSA DEVE TROVARSI NEL QUADRANTE ALTO (i.e. div_y 1-4) ----
+        # ---- LA PAROLA INTRUSA PUO' TROVARSI IN UN QUADRANTE DIVERSO (DEFINITO DA divy) ----
         nowords = [str(w) for (w, divy) in TIPO_FIR[tipo]['NO_WORD']]
         exc_word = "('" + "','".join(nowords) + "')"
         nowq = """
@@ -273,9 +286,9 @@ class GetFileInfo:
             WHERE
             (parola in {exc_word}) AND
             div_x = '1-2' AND
-            div_y = '1-4' AND
+            div_y = '{divy}' AND
             file = '{file}';
-        """.format(sub_body=self.qy.sub_body, exc_word=exc_word, file=self.file_only)
+        """.format(sub_body=self.qy.sub_body, exc_word=exc_word, divy=divy, file=self.file_only)
 
         nwres = self.cur.execute(nowq).fetchall()
         if nwres:
@@ -388,6 +401,10 @@ class GetFileInfo:
         # https://jaafarbenabderrazak-info.medium.com/ocr-with-tesseract-opencv-and-python-d2c4ec097866
         # BEST PRACTICES https://ai-facets.org/tesseract-ocr-best-practices/
         orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
+        # SE HO FILENAME MODIFICATO CON "_rot" ALLORA CONSIDERO IL FILE ORIGINALE SENZA QUESTA DICITURA
+        # PER EFFETTUARE IL RITAGLIO
+        # if self.rotated_file:
+        #     orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
         img = Image.open(orig_filepath)
         left = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][0]
         top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
@@ -396,8 +413,8 @@ class GetFileInfo:
             right = self.width + 5 + cutoff_width  # SCELGO UN RITAGLIO PER TUTTA
             # LA LARGHEZZA DEL FIR + 5 (SCELTA CHE PORTA SOLO A MIGLIORARE OCR) + CUTOFF INSERITO
         else:
-            # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN LARGHEZZA ED ALTEZZA CHE NON SONO REALI
-            # DIMINUISCO DI 1000 IN LARGHEZZA E DI 300 IN ALTEZZA
+            # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN LARGHEZZA CHE NON E' OTTIMALE
+            # DIMINUISCO DI 1000 IN LARGHEZZA
             top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1] + 300
             right = self.width - 1000 + 5 + cutoff_width
 
@@ -406,11 +423,21 @@ class GetFileInfo:
         # MANTENGO RAPPORTO 1050 / 3334 = 0.3149.. NEL CASO DI ALTEZZE DIVERSE IN INPUT
 
         if self.height < 3360:
-            top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
+            # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN ALTEZZA CHE NON E' OTTIMALE
+            # AGGIUNGO 300 IN ALTEZZA
+            if self.rotated_file:
+                top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1] + 300
+            else:
+                top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
             bottom = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][3]
         else:
             if self.nome_tipologia == 'FORMULARIO RIFIUTI - ALLEGATO B - ETM':
-                top = 0
+                # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN ALTEZZA CHE NON E' OTTIMALE
+                # AGGIUNGO 300 IN ALTEZZA
+                if self.rotated_file:
+                    top = 0 + 300
+                else:
+                    top = 0
                 bottom = (self.height * 0.2099)
             elif self.nome_tipologia == 'FIR - TRS':
                 top = (self.height * 0.1949)
@@ -478,7 +505,7 @@ class GetFileInfo:
     def update_rotated_filename(self, rot):
         orig_file = self.file
         orig_file_only = self.file_only
-        self.logger.info('FILE PATH PRIMA ROTAZIONE {}'.format(self.file))
+        self.logger.info('FILE NAME PRIMA ROTAZIONE {}'.format(self.file_only))
         self.file = self.file.split('.png')[0] + '_rot{}'.format(rot) + '.png'
         # split('_')[3] poichè considero stringa aggiuntiva '_rot'
         if sys.platform == 'win32':
@@ -553,6 +580,7 @@ class GetFileInfo:
             perc_tilted_rows = int(tilted_rows / len(data) * 100)
             self.logger.info('PERCENTUALE RIGHE SOSPETTE (LUNGHEZZA 0 OPPURE 1) : {}%'.format(perc_tilted_rows))
 
+            # SE LA PERCENTUALE DI RIGHE NON ACCETTATE E' INFERIORE AL 60% ALLORA ACCETTO IL RISULTATO
             if not perc_tilted_rows > 60:
                 if self.rotated_file:
                     self.update_rotated_filename(rot)
@@ -581,7 +609,6 @@ class GetFileInfo:
                     AND
                     tipologia != 'NC'
                 """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
-                self.rotated_file = True
             else:
                 q = """
                     SELECT *
@@ -613,6 +640,7 @@ class GetFileInfo:
             row = [elem for elem in res]
             try:
                 self.file_only = row[0][1]
+                self.file = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
             except Exception:
                 self.logger.info('RISULTATO NON TROVATO NEL DB CON ROTAZIONE = {}'.format(rotation))
         if table == 'OCR_FIR' and res:
@@ -1465,10 +1493,6 @@ def write_info_produttori_to_csv(prod_dict):
 if __name__ == '__main__':
     logger.info('{0} INIZIO ESECUZIONE SCANSIONE FORMULARI RIFIUTI {0}'.format('!' * 20))
     start_time = time.time()
-
-    # for elem in os.listdir(IMAGE_PATH):
-    #     if not elem.endswith('.jpg'):
-    #         os.rename(os.path.join(IMAGE_PATH, elem), os.path.join(IMAGE_PATH, elem + '.jpg'))
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
