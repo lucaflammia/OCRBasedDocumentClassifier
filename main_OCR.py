@@ -817,6 +817,7 @@ class GetFileInfo:
     def get_delim_words(self, info, btw_words, id_st, id_fin):
         delim_words = {}
         len_dw_st = 0
+        low = []
 
         for ii, words_lst in enumerate(btw_words):
             word_like = self.word_like_cond(words_lst)
@@ -825,7 +826,6 @@ class GetFileInfo:
                 len_dw_st = len(delim_words)
             for jj, txt in enumerate(words_lst):
                 clike = '(' + ' or '.join(word_like[txt]) + ')'
-                # INSERITO ORDER BY DESC PER OCR CON CARATTERI INTRUSI (ES. '‘PRODUTTORE')
                 q = """
                     SELECT t1.id, parola
                     FROM {table} t1
@@ -834,25 +834,56 @@ class GetFileInfo:
                     WHERE
                     file = '{file}' AND
                     {clike}
-                    ORDER BY parola {ord}
                     LIMIT 1;
                 """.format(table='OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']),
-                           file=self.file_only, clike=clike, ord='DESC')
+                           file=self.file_only, clike=clike)
 
                 if self.cur.execute(q).fetchall():
                     delim_words[txt] = [(item[0], item[1], '{}'.format('ALTO' if ii == 0 else 'BASSO'))
                                         for item in self.cur.execute(q).fetchall()]
+                    if delim_words[txt][0][2] == 'BASSO':
+                        low.append(delim_words[txt][0][0])
                 elif (not self.cur.execute(q).fetchall()) and (ii == 0) \
                         and (jj == len(btw_words[0]) - 1) and (len(delim_words) == 0):
                     # SE NON TROVO ALCUNA PAROLA CHE IDENTIFICA INIZIO RITAGLIO
+                    self.logger.info('NON TROVATA ALCUNA PAROLA CHE IDENTIFICA INIZIO RITAGLIO')
+                    self.logger.info('CONSIDERO INIZIO INFO DAL PRIMO ID')
                     delim_words['START_INFO'] = [(id_st, 'NO WORD', 'EOF')]
                 elif (not self.cur.execute(q).fetchall()) and (ii == 1) \
                         and (jj == len(btw_words[1]) - 1) and (len(delim_words) - len_dw_st == 0):
                     # SE NON TROVO ALCUNA PAROLA CHE IDENTIFICA FINE RITAGLIO
+                    self.logger.info('NON TROVATA ALCUNA PAROLA CHE IDENTIFICA FINE RITAGLIO')
+                    self.logger.info("CONSIDERO FINE INFO DALl' ULTIMO ID")
                     delim_words['END_INFO'] = [(id_fin, 'NO WORD', 'EOF')]
 
-        self.logger.info('PAROLE CHIAVE CHE DELIMITANO INFO {}'.format(delim_words))
-        return delim_words
+        self.logger.info('PAROLE CHIAVE TROVATE CHE DELIMITANO INFO {}'.format(delim_words))
+
+        # SE HO PAROLE DI TIPO "BASSO" POSSO FARE RICERCA SUCCESSIVA
+        if low:
+            minlow = min(low)
+
+            # ESCLUDO CASO IN CUI PAROLA ALTA ABBIA ID MAGGIORE DI QUELLA "BASSA"
+            # (ES. "Denominazione" PRESA DA SEZIONE DESTINATARIO E NON PRODUTTORE per 105613_DUG4748772020)
+            delim_words_ok = {}
+
+            for txt, info_list in delim_words.items():
+                for (w_id, par, cc) in info_list:
+                    if cc == 'ALTO' and w_id > minlow:
+                        continue
+                    delim_words_ok[txt] = [(w_id, par, cc)]
+            if not delim_words_ok == delim_words:
+                delim_words_ok['START_INFO'] = [(id_st, 'NO WORD', 'BOF')]
+            else:
+                self.logger.info('PAROLE CHIAVE TROVATE SONO TUTTE ACCETTATE')
+                return delim_words_ok
+        else:
+            self.logger.info('NESSUNA PAROLA INDIVIDUATA COME TIPO "BASSO"')
+            self.logger.info('PAROLE CHIAVE TROVATE SONO TUTTE ACCETTATE')
+            delim_words_ok = delim_words
+            return delim_words_ok
+
+        self.logger.info('PAROLE CHIAVE ACCETTATE CHE DELIMITANO INFO {}'.format(delim_words_ok))
+        return delim_words_ok
 
     def get_info_fir(self, info):
         id_coor = {}
@@ -1143,6 +1174,13 @@ class GetFileInfo:
         for txt, info_list in delim_words.items():
             for (w_id, par, cc) in info_list:
                 idx.append((w_id, cc))
+
+        # METTI AL PRIMO POSTO LA TUPLA CON "START_INFO" SE E' PRESENTE NELLA LISTA IN FONDO
+        minidx = min([item[0] for item in idx[:-1]])
+        for ii, (id, coo) in enumerate(idx):
+            if ii == len(idx) - 1 and id < minidx:
+                idx.insert(0, (id, coo))
+                del idx[-1]
 
         r_idx = []
         id_past = (-1, -1)
@@ -1509,7 +1547,7 @@ if __name__ == '__main__':
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
-    load_files_tmp = ['101646_fir09125-2020+800000.0001_']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
+    load_files_tmp = ['105613_DUG4748772020']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in load_files_tmp:
         load_files.append(elem.split('.jpg')[0])
