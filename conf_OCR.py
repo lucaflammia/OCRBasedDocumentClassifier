@@ -44,7 +44,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont'
         ]
     },
     'TRASP': {
@@ -99,7 +99,7 @@ TIPO_C = {
     'FILES': []
 }
 
-TIPO_D = {
+TIPO_E = {
     'TEXT': ["diego", "lequile"],
     'SIZE_OCR': [0, 650, 2356, 1050],
     'NO_WORD': COMMON_NO_WORD,
@@ -108,19 +108,29 @@ TIPO_D = {
     'FILES': []
 }
 
-TIPO_C1 = {
-    'TEXT': ["recuperi", "ecol"],
-    'NO_WORD': ['denominazione'],
-    'SIGN': ["<", "<"],
+TIPO_D = {
+    'TEXT': ["recuperi", "severino"],
+    'SIZE_OCR': [0, 550, 2356, 1050],
+    'NO_WORD': [('denominazione', '1-4')] + COMMON_NO_WORD,
+    'DLT_ID': 25,
     'NAME': 'FORMULARIO PULI ECOL',
     'FILES': []
 }
 
-TIPO_F = {
-    'TEXT': ["itrofer", "circolare"],
-    'NO_WORD': [],
-    'SIGN': ["<", "<"],
-    'NAME': 'FORMULARIO ITROFER',
+# TIPO_F = {
+#     'TEXT': ["itrofer", "circolare"],
+#     'NO_WORD': [],
+#     'SIGN': ["<", "<"],
+#     'NAME': 'FORMULARIO ITROFER',
+#     'FILES': []
+# }
+
+TIPO_G = {
+    'TEXT': ["futuro", "sostenibile"],
+    'SIZE_OCR': [0, 550, 2356, 1050],
+    'NO_WORD': COMMON_NO_WORD,
+    'DLT_ID': 25,
+    'NAME': 'NIECO',
     'FILES': []
 }
 
@@ -148,13 +158,16 @@ NC = {
 # TIPO D: TEMPLATE PER FIR "CONSORZIO NAZIONALE RACCOLTO RICICLO" (SOLO IN ALTO AL CENTRO)
 # TIPO E: TEMPLATE PER FIR "VERONICO" (SOLO IN ALTO A SINISTRA)
 # TIPO F: TEMPLATE PER FIR "ITROFER CIRCOLARE" (SOLO IN ALTO A SINISTRA)
+# TIPO G: TEMPLATE PER FIR "NIECO"
 
 TIPO_FIR = {
     'TIPO_A': TIPO_A,
     'TIPO_B': TIPO_B,
     'TIPO_C': TIPO_C,
     'TIPO_D': TIPO_D,
+    'TIPO_E': TIPO_E,
 #    'TIPO_F': TIPO_F,
+    'TIPO_G': TIPO_G,
     'NC': NC
 }
 

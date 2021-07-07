@@ -151,6 +151,7 @@ class GetFileInfo:
         self.width, self.height = img.size
 
         self.logger.info('{0} FILE : {1} {0}'.format('+' * 20, self.file_only))
+        self.logger.info('SIZE IMMAGINE : {0} w - {1} h'.format(self.width, self.height))
 
         # CREA DB NEL CASO NON CI FOSSERO TABELLE
         # CREA TABELLE FROM SCRATCH SU HEROKU E FAI PROVE
@@ -162,7 +163,7 @@ class GetFileInfo:
             if res:
                 self.rotated_file = True
         if not res:
-            self.logger.info('FILE NON TROVATO NEL DB')
+            self.logger.info('FILE NON TROVATO NEL DB PER CATEGORIA DIVERSA DA NC')
             self.logger.info('ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
             self.ocr_analysis(img)
             self.logger.info('FINE ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
@@ -390,6 +391,24 @@ class GetFileInfo:
         # gray = cv2.medianBlur(gray, 3)
         return gray
 
+    def crop_top_area(self, top_ini=0):
+        q = """
+            SELECT coor_y 
+            FROM parole_WEB t1
+            LEFT JOIN files_WEB t2
+            ON (t1.id_file=t2.id)
+            WHERE file = '{file}' 
+            ORDER BY t1.id ASC LIMIT 1;
+        """.format(file=self.file_only)
+        cy = self.cur.execute(q).fetchall()[0][0]
+        # SE PRIMA PAROLA HA COORDINATA Y MAGGIORE DI 200 ALLORA FACCIO TAGLIO SU TOP
+        # PER RIMUOVERE IL BIANCO FOGLIO DATO DALLA ROTAZIONE
+        top_out = top_ini
+        if cy > 200:
+            top_out = top_ini + 300
+
+        return top_out
+
     def ocr_analysis_ritaglio(self, info, cutoff_width=0, config_ocr=r'--oem 3 --psm 4'):
         info_fir = INFO_FIR[info.upper()]['TEXT']
         # PROVATO https://www.geeksforgeeks.org/text-detection-and-extraction-using-opencv-and-ocr/
@@ -407,6 +426,7 @@ class GetFileInfo:
         img = Image.open(orig_filepath)
         left = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][0]
         top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
+        bottom = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][3]
 
         if not self.rotated_file:
             right = self.width + 5 + cutoff_width  # SCELGO UN RITAGLIO PER TUTTA
@@ -414,33 +434,29 @@ class GetFileInfo:
         else:
             # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN LARGHEZZA CHE NON E' OTTIMALE
             # DIMINUISCO DI 1000 IN LARGHEZZA
-            top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1] + 300
-            right = self.width - 1000 + 5 + cutoff_width
+            right = self.width - 1550 + 5 + cutoff_width
 
         # PER FIR - TRS ALTEZZA RITAGLIO PROD E' NEL RANGE [650,1050] per SIZE STANDARD INPUT FIR di 3334
         # MANTENGO RAPPORTO 650 / 3334 = 0.1949.. NEL CASO DI ALTEZZE DIVERSE IN INPUT
         # MANTENGO RAPPORTO 1050 / 3334 = 0.3149.. NEL CASO DI ALTEZZE DIVERSE IN INPUT
 
-        if self.height < 3360:
+        if self.nome_tipologia == 'FORMULARIO RIFIUTI - ALLEGATO B - ETM':
             # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN ALTEZZA CHE NON E' OTTIMALE
-            # AGGIUNGO 300 IN ALTEZZA
+            # TAGLIO 300 IN ALTEZZA
             if self.rotated_file:
-                top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1] + 300
+                top = self.crop_top_area()
+                bottom = (self.height * 0.2099) + 300
             else:
-                top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
-            bottom = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][3]
-        else:
-            if self.nome_tipologia == 'FORMULARIO RIFIUTI - ALLEGATO B - ETM':
-                # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN ALTEZZA CHE NON E' OTTIMALE
-                # AGGIUNGO 300 IN ALTEZZA
-                if self.rotated_file:
-                    top = 0 + 300
-                else:
-                    top = 0
+                top = 0
                 bottom = (self.height * 0.2099)
-            elif self.nome_tipologia == 'FIR - TRS':
-                top = (self.height * 0.1949)
-                bottom = (self.height * 0.3149)
+        elif self.nome_tipologia in ('FIR - TRS', 'FORMULARIO PULI ECOL'):
+            # LA ROTAZIONE CONSIDERA UNA MAGGIORE ESTENSIONE DEL FOGLIO IN ALTEZZA CHE NON E' OTTIMALE
+            # TAGLIO 300 IN ALTEZZA
+            if self.rotated_file:
+                top = self.crop_top_area(top_ini=TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1])
+            else:
+                top = (self.height * 0.1949) if self.nome_tipologia == 'FIR - TRS' else (self.height * 0.16496)
+            bottom = (self.height * 0.3149)
 
         wsize = int(right) - int(left)
         hsize = int(bottom) - int(top)
@@ -569,19 +585,18 @@ class GetFileInfo:
                     for (t, c) in raw_data[0]:
                         data.append((t, c.tolist(), '{}-{}'.format(iw, nw), '{}-{}'.format(ih, nh),))
 
-            # self.logger.info('DATA {}'.format(pprint.pprint(data)))
             self.logger.info('{0} FINE ESECUZIONE OCR {0}'.format('-' * 20))
             self.insert_new_records_table(table='files_WEB', dpi=DPI)
             self.insert_new_records_table(data=data, table='parole_WEB', dpi=DPI)
 
             # CHECK SE OCR RISULTA INADEGUATO POICHE' IL FILE E' RUOTATO E NON LEGGO BENE PAROLE
             # VERIFICANDO ESISTENZA DI ALMENO UNA PAROLA SENSATA
-            common_fir_words = ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale',
-                                'unita', 'locale', 'codice', 'fiscale', 'autorizzazione']
+            common_fir_words = ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale', 'identificazione',
+                                'unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'formulario', 'trasporto',
+                                'futuro', 'sostenibile']
             accepted_word = False
             for par, (lu, ru, ld, rd), div_x, div_y in data:
                 if par in common_fir_words:
-                    self.logger.info('PAR {}'.format(par))
                     accepted_word = True
                     break
             self.logger.info('RICERCA DI PAROLE COMUNI NEL FIR : ESITO -> {}'.format(accepted_word))
@@ -1014,7 +1029,7 @@ class GetFileInfo:
                 self.delete_table(table='ocr', info_fir=INFO_FIR[info.upper()]['TEXT'])
                 self.logger.info('{0} TENTATIVO NO. {1} CREAZIONE RITAGLIO OCR {2} PER FILE {3} '
                                  'CONFIG OCR DIVERSO {0}'
-                                 .format('+' * 20, itent + 2, INFO_FIR[info.upper()]['TEXT'], self.file_only))
+                                 .format('+' * 20, itent + 1, INFO_FIR[info.upper()]['TEXT'], self.file_only))
                 if itent % 2 == 0:
                     itime = 1
                     molt = itent // 2
@@ -1352,6 +1367,8 @@ class GetFileInfo:
         self.logger.info('FILE {0} RUOTATO DI {1} GRADI'.format(self.file_only, rot))
         img_rot = img.rotate(rot, expand=True)
         if not rot == 0:
+            width_rot, height_rot = img_rot.size
+            self.logger.info('NUOVI VALORI SIZE PER ROTAZIONE : {0} w - {1} h'.format(width_rot, height_rot))
             self.rotated_file = True
         return img_rot
 
@@ -1547,7 +1564,7 @@ if __name__ == '__main__':
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
-    load_files_tmp = ['105613_DUG4748772020']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
+    load_files_tmp = ['96454_120139']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in load_files_tmp:
         load_files.append(elem.split('.jpg')[0])
