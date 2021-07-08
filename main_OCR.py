@@ -56,7 +56,7 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
 
 
 class GetFileInfo:
@@ -502,6 +502,7 @@ class GetFileInfo:
         for t_l in foo:
             for t in t_l:
                 if re.search("\w", t):
+                    t = t.lower()
                     data.get(info_fir).append(t)
 
         self.logger.info('data {}'.format(data))
@@ -691,11 +692,21 @@ class GetFileInfo:
 
         res = self.check_file(table='OCR_{}'.format(info_fir))
 
+        accepted_words = set()
+        for k, lst in self.full_info['PRODUTTORI'].items():
+            for elem in lst:
+                if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
+                    accepted_words.add(elem)
+
+        # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
+        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
+                             + COMMON_FIR_INFO[self.tipologia])
+
         if not res:
             for par in data.get(info_fir):
                 # ELIMINO CARATTERE UNDERSCORE (POICHE' E' ALFANUMERICO)
                 par = re.sub('_', '', par)
-                if par.lower() in ['s.r.l', 'sr.l', 's.rl']:
+                if par in ['s.r.l', 'sr.l', 's.rl']:
                     res_par = 'srl'
                 # SE TROVO CARATTERI SPECIALI NELLA PAROLA
                 elif re.search('\W', par) and len(par) > 3:
@@ -707,8 +718,22 @@ class GetFileInfo:
                 # SE TROVO CARATTERI ORDINALI INSIEME A CIFRE
                 elif re.search('\w', par) and re.search('\d', par) and len(par) > 3:
                     res_par = re.split('\d', par)
-                # if par == 'PRODUTTORE/DETENTORE':
-                #     res_par = par.split('/')
+                # CONSIDERO CASO PAROLA LUNGA DATO DA INSIEME PAROLE SENSO COMPIUTO (ES. "SEARISORSESPA")
+                elif len(par) >= 8 and par not in accepted_words:
+                    fragment_words = ['spa', 'srl', 'sea']
+                    res_par = []
+                    foo = set()
+                    for fragment_word in fragment_words:
+                        if fragment_word in par:
+                            lst = par.split(fragment_word)
+                            res_par.append(fragment_word)
+                            for txt in lst:
+                                if len(txt) >= 5:
+                                    for word in accepted_words:
+                                        if len(word) >= 5 and word in txt:
+                                            foo.add(word)
+                    for elem in foo:
+                        res_par.append(elem)
                 else:
                     res_par = ''
                     for c in par:
@@ -1491,7 +1516,37 @@ def write_info_produttori_to_csv(prod_dict):
 
         f.close()
 
+def write_fir_list_todo():
+    with open('TOTAL_FIRLIST.txt', 'w') as f:
+        for item in os.listdir(IMAGE_PATH):
+            f.write('{}\n'.format(item.split('.jpg')[0]))
+        f.close()
 
+
+def check_fir_list_todo():
+    fir_todo =[]
+    with open('TOTAL_FIRLIST.txt', 'r') as f:
+        totlist = f.readlines()
+        for fir in totlist:
+            fir_todo.append(fir.replace('\n', ''))
+        f.close()
+
+    firdone = []
+    with open(os.path.join('DB_BACKUP', 'FIRLIST_20210702.csv'), 'r') as f:
+        fird = f.readlines()
+        for fir in fird:
+            firdone.append(fir.replace('\n', ''))
+        f.close()
+
+    logger.info('FIR TOTALI {}'.format(len(fir_todo)))
+    logger.info("FIR GIA' ANALIZZATI {}".format(len(firdone)))
+
+    for elem in firdone:
+        fir_todo.remove(elem)
+
+    logger.info('FIR DA CONSIDERARE {}'.format(len(fir_todo)))
+
+    return fir_todo
 # def read_full_info(info=''):
 #     full_info = {
 #         'PRODUTTORI': {
@@ -1564,9 +1619,10 @@ if __name__ == '__main__':
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
-    load_files_tmp = ['96454_120139']#os.listdir(IMAGE_PATH)[:4]#enumerate(os.listdir(IMAGE_PATH))
+    listfir_todo = check_fir_list_todo()
+    #oad_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
-    for elem in load_files_tmp:
+    for elem in listfir_todo[:1300]:
         load_files.append(elem.split('.jpg')[0])
     files = []
     # full_info = read_full_info(info='PRODUTTORI')

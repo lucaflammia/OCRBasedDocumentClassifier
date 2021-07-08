@@ -30,7 +30,7 @@ INFO_FIR = {
         'TABLE': 'PRODUTTORI',
         'BTWN_WORD': {
             'INIZ': ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale'],
-            'FIN': ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'aut/albo']
+            'FIN': ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'albo']
         },
         'NO_WORD_OCR': [
             'produttore', 'detentore', 'registro', 'numero', 'luogo', 'destinatario', 'albo', 'trasportatore',
@@ -44,7 +44,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale'
         ]
     },
     'TRASP': {
