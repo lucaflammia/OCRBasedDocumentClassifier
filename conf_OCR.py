@@ -8,6 +8,7 @@ date_time = now.strftime("%Y-%m-%d %H-%M-%S")
 BASEPATH = os.path.abspath(".")
 PRED_PATH = os.path.abspath("..")
 DB_PATH = os.path.join(PRED_PATH, 'DEMO_APP', 'WEB_APP')
+DB_BACKUP_PATH = os.path.join(BASEPATH, 'DB_BACKUP')
 IMAGE_PATH = os.path.join(PRED_PATH, 'FIR_BULK', 'jpg_archive')
 
 if not os.path.exists(os.path.join(BASEPATH, "archive")):
@@ -74,8 +75,9 @@ COMMON_NO_WORD = [("torinese", "1-4"), ("pericolosi", "1-4"), ('filippo', "1-4")
 TIPO_A = {
     'TEXT': ["formulario", "rifiuti"],
     'SIZE_OCR': [0, 0, 2356, 700],
-    'NO_WORD': [("identificazione", "1-4"), ("recycling", "1-4"),
-                ('systems', '1-4'), ('balvano', '1-4')] + COMMON_NO_WORD,
+    'NO_WORD': [("identificazione", "1-4"), ("recycling", "1-4"), ("mondoservizi", "1-4"),
+                ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
+                ("itrofer", "1-4"), ("circolare", "1-4")] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []
@@ -306,3 +308,7 @@ class QueryFir:
                 LEFT JOIN files f
                 ON (p.id_file=f.id)
             """
+
+    def load_db(self):
+        db_from = os.listdir(DB_BACKUP_PATH)
+        return db_from

@@ -153,6 +153,80 @@ class GetFileInfo:
         self.logger.info('{0} FILE : {1} {0}'.format('+' * 20, self.file_only))
         self.logger.info('SIZE IMMAGINE : {0} w - {1} h'.format(self.width, self.height))
 
+        # CASO RICERCA DI FALSI POSITIVI DI UNA TIPOLOGIA INIZIALMENTE INDIVIDUATA
+        # SE TROVATI ALLORA EVITO ANALISI OCR
+        #db_from = self.qy.load_db()
+        #for ii, db in enumerate(db_from):
+        #    if db == '.DS_Store':
+        #        continue
+        #    logger.info('FIR CERCATO NEL DB {0} {1}'.format(db, os.path.join(DB_BACKUP_PATH, db)))
+        #    conn = sqlite3.connect(os.path.join(DB_BACKUP_PATH, db))
+        #    cur = conn.cursor()
+        #    q = """
+        #        SELECT tipologia
+        #        FROM {table}
+        #        WHERE file = '{file}'
+        #    """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
+        #    if cur.execute(q).fetchall():
+        #        self.logger.info('FILE {0} ANALIZZATO NEL DB {1}'.format(self.file_only, db))
+        #        self.logger.info('IGNORO ANALISI OCR E VERIFICO CORRETTEZZA TIPOLOGIA')
+        #        tipologia_passata = cur.execute(q).fetchall()[0][0]
+        #        self.nome_tipologia = tipologia_passata
+        #    else:
+        #        if not ii == len(db_from) - 1:
+        #            self.logger.info('FILE {0} NON ANALIZZATO NEL DB {1}'.format(self.file_only, db))
+        #            continue
+        #        else:
+        #            self.logger.info('FILE {0} NON ANALIZZATO NEI DB PASSATI'.format(self.file_only))
+        #                    break
+
+        #    self.logger.info('TIPOLOGIA PASSATA {}'.format(tipologia_passata))
+        #    for jj, tipo in enumerate(TIPO_FIR):
+        #        if not tipo == 'NC':
+        #            tlist = TIPO_FIR.get(tipo)['TEXT']
+        #            nwlist = []
+        #            for (nword, divy) in TIPO_FIR[tipo]['NO_WORD']:
+        #                nwlist.append(nword)
+
+        #            wlist = tlist + nwlist
+
+        #            word_like[tipo] = self.word_like_cond(wlist)
+
+        #            self.get_tipologia(tipo, word_like[tipo])
+        #            if not self.tipologia == 'NC':
+        #                TIPO_FIR[self.tipologia]['FILES'].append(self.file_only)
+        #                q = """
+        #                   UPDATE "{table}"
+        #                   SET tipologia = "{val_field}"
+        #                   WHERE file = "{file}"
+        #               """.format(table='files_WEB' if self.web else 'files',
+        #                          val_field=self.nome_tipologia, file=self.file_only)
+
+        #               cur.execute(q)
+        #               conn.commit()
+        #                if not tipologia_passata == self.nome_tipologia:
+        #                    self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A {2}'
+        #                                     .format(self.file_only, tipologia_passata, self.nome_tipologia))
+        #                else:
+        #                    self.logger.info('TIPOLOGIA PER FILE {0} CONFERMATA A {1}'
+        #                                     .format(self.file_only, tipologia_passata))
+        #                return
+        #        if jj == len(TIPO_FIR) - 1 and self.nome_tipologia == tipologia_passata:
+        #            self.nome_tipologia = 'NC'
+        #            q = """
+        #                UPDATE "{table}"
+        #                SET tipologia = "{val_field}"
+        #                WHERE file = "{file}"
+        #            """.format(table='files_WEB' if self.web else 'files',
+        #                       val_field=self.nome_tipologia, file=self.file_only)
+        #            cur.execute(q)
+        #            conn.commit()
+        #            self.logger.info('ELENCO TIPOLOGIA TERMINATO')
+        #            self.logger.info('FILE {0} NON IDENTIFICATO A NUOVA TIPOLOGIA'.format(self.file_only))
+        #            self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A NC'
+        #                             .format(self.file_only, tipologia_passata))
+        #            return
+
         # CREA DB NEL CASO NON CI FOSSERO TABELLE
         # CREA TABELLE FROM SCRATCH SU HEROKU E FAI PROVE
         CreazioneDatabase(self.db, self.web)
@@ -163,7 +237,7 @@ class GetFileInfo:
             if res:
                 self.rotated_file = True
         if not res:
-            self.logger.info('FILE NON TROVATO NEL DB PER CATEGORIA DIVERSA DA NC')
+            self.logger.info('FILE NON TROVATO NEL DB PRESENTE PER CATEGORIA DIVERSA DA NC')
             self.logger.info('ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
             self.ocr_analysis(img)
             self.logger.info('FINE ANALISI INIZIALE OCR PER FILE {0}'.format(self.file_only))
@@ -671,7 +745,7 @@ class GetFileInfo:
                 self.file_only = row[0][1]
                 self.file = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
             except Exception:
-                self.logger.info('RISULTATO NON TROVATO NEL DB CON ROTAZIONE = {}'.format(rotation))
+                self.logger.info('RISULTATO NON TROVATO NEL DB PRESENTE CON ROTAZIONE = {}'.format(rotation))
         if table == 'OCR_FIR' and res:
             item = res[0]
             self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6], 'ocr_size': item[2]}
@@ -1516,6 +1590,7 @@ def write_info_produttori_to_csv(prod_dict):
 
         f.close()
 
+
 def write_fir_list_todo():
     with open('TOTAL_FIRLIST.txt', 'w') as f:
         for item in os.listdir(IMAGE_PATH):
@@ -1523,7 +1598,7 @@ def write_fir_list_todo():
         f.close()
 
 
-def check_fir_list_todo():
+def check_remaining_firlist_todo():
     fir_todo =[]
     with open('TOTAL_FIRLIST.txt', 'r') as f:
         totlist = f.readlines()
@@ -1531,22 +1606,63 @@ def check_fir_list_todo():
             fir_todo.append(fir.replace('\n', ''))
         f.close()
 
-    firdone = []
-    with open(os.path.join('DB_BACKUP', 'FIRLIST_20210702.csv'), 'r') as f:
+    firdone = set()
+    with open(os.path.join(BASEPATH, 'FIRLIST_20210702.csv'), 'r') as f:
         fird = f.readlines()
         for fir in fird:
-            firdone.append(fir.replace('\n', ''))
+            firdone.add(fir.replace('\n', ''))
         f.close()
 
-    logger.info('FIR TOTALI {}'.format(len(fir_todo)))
-    logger.info("FIR GIA' ANALIZZATI {}".format(len(firdone)))
+    with open(os.path.join(BASEPATH, 'FIRLIST_20210708.csv'), 'r') as f:
+        fird = f.readlines()
+        for fir in fird:
+            firdone.add(fir.replace('\n', ''))
+        f.close()
+
+    logger.info('FIR TOTALI IN FIR BULK{}'.format(len(fir_todo)))
+    logger.info("FIR GIA' ANALIZZATI IN TOTALE{}".format(len(firdone)))
 
     for elem in firdone:
-        fir_todo.remove(elem)
+        if elem in fir_todo:
+            fir_todo.remove(elem)
 
     logger.info('FIR DA CONSIDERARE {}'.format(len(fir_todo)))
 
     return fir_todo
+
+
+def check_firlist_tipo_a():
+    firlist_tipo_a = os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['TIPO_A']['NAME']))
+    logger.info('{0} FIR DI TIPO {1} TROVATI'.format(len(firlist_tipo_a), TIPO_FIR['TIPO_A']['NAME']))
+    todo = set()
+    firlist_from_db = set()
+    no_ocr_ritaglio = set()
+    for datetime in ['20210702', '20210708']:
+        db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_{}.db'.format(datetime))
+        logger.info('FIR ANALIZZATI DA DB {}'.format(db))
+        conn = sqlite3.connect(db)
+        cur = conn.cursor()
+        for fir in firlist_tipo_a:
+            # CONSIDERO QUELLI CHE SONO STATI ANALIZZATI NEL RITAGLIO PRODUTTORE
+            if fir.endswith('_PRODUTTORE.png'):
+                fir = fir.split('_PRODUTTORE.png')[0]
+                todo.add(fir)
+                q = """
+                    SELECT file FROM files_WEB
+                    WHERE file like '{file}%'
+                    AND tipologia = '{tipo}';
+                """.format(file=fir.split('_PRODUTTORE')[0], tipo=TIPO_FIR['TIPO_A']['NAME'])
+                if cur.execute(q).fetchall():
+                    firlist_from_db.add(cur.execute(q).fetchall()[0][0])
+            else:
+                no_ocr_ritaglio.add(fir)
+        conn.close()
+    review = todo - firlist_from_db
+    logger.info('PAST TO REVIEW : {}'.format(len(review)))
+    logger.info('FIRLIST FROM DB : {}'.format(len(firlist_from_db)))
+    logger.info('NO OCR RITAGLIO {}'.format(len(no_ocr_ritaglio)))
+    logger.info('FIR DA CONTROLLARE = TODO = FIRLIST FROM DB + PAST TO REVIEW: {}'.format(len(todo)))
+    return todo
 # def read_full_info(info=''):
 #     full_info = {
 #         'PRODUTTORI': {
@@ -1619,10 +1735,12 @@ if __name__ == '__main__':
 
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
-    listfir_todo = check_fir_list_todo()
+    listfir_todo = check_remaining_firlist_todo()
+    #listfir_todo = check_firlist_tipo_a()
+    #listfir_todo = list(listfir_todo)
     #oad_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
-    for elem in listfir_todo[:1300]:
+    for elem in listfir_todo[:3]:#listfir_todo[:1300]:
         load_files.append(elem.split('.jpg')[0])
     files = []
     # full_info = read_full_info(info='PRODUTTORI')
