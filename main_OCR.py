@@ -1098,11 +1098,6 @@ class GetFileInfo:
                     self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
                 self.save_move_delete_png(info='PRODUTTORE')
-                # img = Image.open(self.file)
-                # img_copy = img.copy()
-                # img.close()
-                # copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
-                # img_copy.save(copy_filepath, 'png')
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
