@@ -9,6 +9,7 @@ BASEPATH = os.path.abspath(".")
 PRED_PATH = os.path.abspath("..")
 DB_PATH = os.path.join(PRED_PATH, 'DEMO_APP', 'WEB_APP')
 DB_BACKUP_PATH = os.path.join(BASEPATH, 'DB_BACKUP')
+DB_STATIC_PATH = os.path.join(PRED_PATH, 'DB_STATIC')
 IMAGE_PATH = os.path.join(PRED_PATH, 'FIR_BULK', 'jpg_archive')
 
 if not os.path.exists(os.path.join(BASEPATH, "archive")):
@@ -45,7 +46,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro'
         ]
     },
     'TRASP': {
@@ -70,18 +71,31 @@ INFO_FIR = {
 }
 
 COMMON_NO_WORD = [("torinese", "1-4"), ("pericolosi", "1-4"), ('filippo', "1-4"),
-                  ('giovanni', "1-4"), ('viterbo', "1-4"), ("siciliarottami", "1-4"), ("sicilia", "1-4")]
+                  ('giovanni', "1-4"), ('viterbo', "1-4"), ("siciliarottami", "1-4"), ("sicilia", "1-4"),
+                  ("logistica", "1-4")]
 
 TIPO_A = {
     'TEXT': ["formulario", "rifiuti"],
     'SIZE_OCR': [0, 0, 2356, 700],
-    'NO_WORD': [("identificazione", "1-4"), ("recycling", "1-4"), ("mondoservizi", "1-4"),
+    'NO_WORD': [("identificazione", "1-4"), ("mondoservizi", "1-4"),
                 ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
                 ("itrofer", "1-4"), ("circolare", "1-4")] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []
 }
+
+TIPO_A_BIS = {
+    'TEXT': ["allegato", "formulario"],
+    'SIZE_OCR': [0, 0, 2356, 700],
+    'NO_WORD': [("identificazione", "1-4"), ("mondoservizi", "1-4"),
+                ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
+                ("itrofer", "1-4"), ("circolare", "1-4")] + COMMON_NO_WORD,
+    'DLT_ID': 25,
+    'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
+    'FILES': []
+}
+
 
 TIPO_B = {
     'TEXT': ["identificazione", "rimondi"],
@@ -136,6 +150,15 @@ TIPO_G = {
     'FILES': []
 }
 
+TIPO_H = {
+    'TEXT': ['robiambiente'],
+    'SIZE_OCR': [0, 550, 2356, 1050],
+    'NO_WORD': COMMON_NO_WORD,
+    'DLT_ID': 25,
+    'NAME': 'ROBI',
+    'FILES': []
+}
+
 NC = {
     'TEXT': [],
     'FILES': [],
@@ -164,27 +187,33 @@ NC = {
 
 TIPO_FIR = {
     'TIPO_A': TIPO_A,
+    'TIPO_A_BIS': TIPO_A_BIS,
     'TIPO_B': TIPO_B,
     'TIPO_C': TIPO_C,
     'TIPO_D': TIPO_D,
     'TIPO_E': TIPO_E,
 #    'TIPO_F': TIPO_F,
     'TIPO_G': TIPO_G,
+#    'TIPO_H': TIPO_H,
     'NC': NC
 }
 
+common_fir_info_tipo_a = \
+    ['srl', 'sas', 'diaz', 'sicon', '36031', 'povolaro', 'dueville', "dellindustria", 'enrico', 'como',
+     'vicenza', 'fasano', 'linussio', 'giorgio', 'nogaro', 'san', 'spa', 'udine', 'rps', 'riviera',
+     'recuperi', 'autofficina', 'molini', 'quarto', 'daltino', 'venezia', 'vertivsrl', 'ecocentro',
+     'porto', 'cavergnago', 'veritas', 'arbe', 'torino', 'romano', 'veritasspa', 'traelet', 'piave',
+     'codroipo', 'vertiv', 'tommaso', 'acquasanta', 'salerno', 'laverda', 'breganze', 'stazzi', '22100',
+     'piovanelli', 'firenze', 'licata', 'duca', 'giordano', 'casanio', 'bovezzo', 'villastorta',
+     'ambiente', 'marosticana', 'vicenza', 'zorza', 'castelverde', 'savoia', 'autoricambi', 'gi', 'due',
+     '80005370137', 'bianchi', 'pneumatici', 'deambrosis', 'maurizio', 'san', 'pietro', 'casorzo', '14032',
+     'elettrauto', 'auto', 'lunger', 'welschnofen', 'levante', 'nova', 'gerenzano', 'inglesina', '21040',
+     'milano', 'snc', 'sea', 'valle', 'camonica', 'rigamonti', 'darfo', 'servizi', 'mollo', 'sonico',
+     'isola', 'baiso', 'europa', 'cem', 'pessano', 'bornago', 'caserta']
+
 COMMON_FIR_INFO = {
-    'TIPO_A': ['srl', 'sas', 'diaz', 'sicon', '36031', 'povolaro', 'dueville', "dellindustria", 'enrico', 'como',
-               'vicenza', 'fasano', 'linussio', 'giorgio', 'nogaro', 'san', 'spa', 'udine', 'rps', 'riviera',
-               'recuperi', 'autofficina', 'molini', 'quarto', 'daltino', 'venezia', 'vertivsrl', 'ecocentro',
-               'porto', 'cavergnago', 'veritas', 'arbe', 'torino', 'romano', 'veritasspa', 'traelet', 'piave',
-               'codroipo', 'vertiv', 'tommaso', 'acquasanta', 'salerno', 'laverda', 'breganze', 'stazzi', '22100',
-               'piovanelli', 'firenze', 'licata', 'duca', 'giordano', 'casanio', 'bovezzo', 'villastorta',
-               'ambiente', 'marosticana', 'vicenza', 'zorza', 'castelverde', 'savoia', 'autoricambi', 'gi', 'due',
-               '80005370137', 'bianchi', 'pneumatici', 'deambrosis', 'maurizio', 'san', 'pietro', 'casorzo', '14032',
-               'elettrauto', 'auto', 'lunger', 'welschnofen', 'levante', 'nova', 'gerenzano', 'inglesina', '21040',
-               'milano', 'snc', 'sea', 'valle', 'camonica', 'rigamonti', 'darfo', 'servizi', 'mollo', 'sonico',
-               'isola', 'baiso', 'europa', 'cem', 'pessano', 'bornago', 'caserta'],
+    'TIPO_A': common_fir_info_tipo_a,
+    'TIPO_A_BIS': common_fir_info_tipo_a,
     'TIPO_B': ['newave'],
     'TIPO_C': ['srl', 'cavagna', 'toscanini', 'renato', 'caorso', '43010', 'fontevivo', 'pontetaro',
                '29012', 'maggio', '01103640338', 'ecologia', 'autoservice', 'melissano', 'pontenure', '29010'

@@ -56,7 +56,7 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
 
 
 class GetFileInfo:
@@ -117,16 +117,20 @@ class GetFileInfo:
 
         return wcond
 
-    def save_move_delete_png(self, info='', delete_folder=''):
+    def save_move_delete_png(self, info='', delete_from_folder=''):
         img = Image.open(self.file)
         img_copy = img.copy()
         img.close()
-        copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
-                                     self.file_only + '_{}' + '.png'.format(info))
+        if info:
+            copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
+                                         self.file_only + '_{}'.format(info) + '.png')
+        else:
+            copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
+                                         self.file_only + '.png')
         img_copy.save(copy_filepath, 'png')
 
-        if delete_folder:
-            os.remove(os.path.join(PNG_IMAGE_PATH, delete_folder,
+        if delete_from_folder:
+            os.remove(os.path.join(PNG_IMAGE_PATH, delete_from_folder,
                                self.file_only + '_PRODUTTORE.png'))
 
     def get_full_info(self, full_info=''):
@@ -167,104 +171,116 @@ class GetFileInfo:
 
         # CASO RICERCA DI FALSI POSITIVI DI UNA TIPOLOGIA INIZIALMENTE INDIVIDUATA
         # SE TROVATI ALLORA EVITO ANALISI OCR
-        db_from = self.qy.load_db()
-        for ii, db in enumerate(db_from):
-            if db == '.DS_Store':
-                continue
-            logger.info('FIR CERCATO NEL DB {0} {1}'.format(db, os.path.join(DB_BACKUP_PATH, db)))
-            conn = sqlite3.connect(os.path.join(DB_BACKUP_PATH, db))
-            cur = conn.cursor()
-            q = """
-               SELECT tipologia
-               FROM {table}
-               WHERE file = '{file}'
-           """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
-            if cur.execute(q).fetchall():
-                self.logger.info('FILE {0} ANALIZZATO NEL DB {1}'.format(self.file_only, db))
-                self.logger.info('IGNORO ANALISI OCR E VERIFICO CORRETTEZZA TIPOLOGIA')
-                nome_tipologia_to_check = cur.execute(q).fetchall()[0][0]
-                self.nome_tipologia = nome_tipologia_to_check
-            else:
-                if not ii == len(db_from) - 1:
-                    self.logger.info('FILE {0} NON ANALIZZATO NEL DB {1}'.format(self.file_only, db))
-                    continue
-                else:
-                    self.logger.info('FILE {0} NON ANALIZZATO NEI DB PASSATI'.format(self.file_only))
-                    break
-
-            self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
-
-            tipo_fir_list = []
-            for elem in TIPO_FIR:
-                if not elem == 'NC':
-                    tipo_fir_list.append(elem)
-
-            for jj, tipo in enumerate(tipo_fir_list):
-                tlist = TIPO_FIR.get(tipo)['TEXT']
-                nwlist = []
-                for (nword, divy) in TIPO_FIR[tipo]['NO_WORD']:
-                    nwlist.append(nword)
-
-                wlist = tlist + nwlist
-
-                word_like[tipo] = self.word_like_cond(wlist)
-
-                self.get_tipologia(tipo, word_like[tipo])
-                if not self.tipologia == 'NC':
-                    TIPO_FIR[self.tipologia]['FILES'].append(self.file_only)
-                    q = """
-                        UPDATE "{table}"
-                        SET tipologia = "{val_field}"
-                        WHERE file = "{file}"
-                    """.format(table='files_WEB' if self.web else 'files',
-                               val_field=self.nome_tipologia, file=self.file_only)
-                    cur.execute(q)
-                    conn.commit()
-                    if not nome_tipologia_to_check == self.nome_tipologia:
-                        self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A {2}'
-                                         .format(self.file_only, nome_tipologia_to_check, self.nome_tipologia))
-                        # SPOSTO IMMAGINE PNG NELLA CARTELLA "NUOVA TIPOLOGIA"
-                        # E LO RIMUOVO DA QUELLA VECCHIA
-                        self.save_move_delete_png(info='PRODUTTORE', delete_folder=nome_tipologia_to_check)
-                        # img = Image.open(self.file)
-                        # img_copy = img.copy()
-                        # img.close()
-                        # copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
-                        #                              self.file_only + '_PRODUTTORE.png')
-                        # img_copy.save(copy_filepath, 'png')
-                        # os.remove(os.path.join(PNG_IMAGE_PATH, nome_tipologia_to_check,
-                        #                        self.file_only + '_PRODUTTORE.png'))
-                    else:
-                        self.logger.info('TIPOLOGIA PER FILE {0} CONFERMATA A {1}'
-                                         .format(self.file_only, nome_tipologia_to_check))
-                    return
-                if jj == len(tipo_fir_list) - 1 and self.nome_tipologia == nome_tipologia_to_check:
-                    self.nome_tipologia = 'NC'
-                    q = """
-                       UPDATE "{table}"
-                       SET tipologia = "{val_field}"
-                       WHERE file = "{file}"
-                    """.format(table='files_WEB' if self.web else 'files',
-                               val_field=self.nome_tipologia, file=self.file_only)
-                    cur.execute(q)
-                    conn.commit()
-                    # SPOSTO IMMAGINE PNG NELLA CARTELLA "NC"
-                    # E LO RIMUOVO DA QUELLA VECCHIA
-                    self.save_move_delete_png(info='PRODUTTORE', delete_folder=nome_tipologia_to_check)
-                    img = Image.open(self.file)
-                    img_copy = img.copy()
-                    img.close()
-                    # copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
-                    #                              self.file_only + '_PRODUTTORE.png')
-                    # img_copy.save(copy_filepath, 'png')
-                    # os.remove(os.path.join(PNG_IMAGE_PATH, nome_tipologia_to_check,
-                    #                        self.file_only + '_PRODUTTORE.png'))
-                    self.logger.info('ELENCO TIPOLOGIA TERMINATO')
-                    self.logger.info('FILE {0} NON CONFERMATO A VECCHIA ED NON IDENTIFICATO A NUOVA TIPOLOGIA'
-                                     .format(self.file_only))
-                    self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A NC'
-                                     .format(self.file_only, nome_tipologia_to_check))
-                    return
+       #  db = 'OCR_MT_MERGE_OK_STATIC.db'
+       #  logger.info('FIR CERCATO NEL DB {0} {1}'.format(db, os.path.join(DB_STATIC_PATH, db)))
+       #  conn = sqlite3.connect(os.path.join(DB_BACKUP_PATH, db))
+       #  cur = conn.cursor()
+       #  q = """
+       #     SELECT tipologia
+       #     FROM {table}
+       #     WHERE file = '{file}'
+       # """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
+       #  if cur.execute(q).fetchall():
+       #      self.logger.info('FILE {0} TROVATO ED ANALIZZATO NEL DB {1}'.format(self.file_only, db))
+       #      nome_tipologia_to_check = cur.execute(q).fetchall()[0][0]
+       #      self.nome_tipologia = nome_tipologia_to_check
+       #      q = """
+       #          SELECT *
+       #          FROM OCR_FIR
+       #          WHERE file = '{file}';
+       #      """.format(file=self.file_only)
+       #      res = cur.execute(q).fetchall()
+       #      if res:
+       #          self.logger.info("INFO GIA' ACQUISITE PER FILE {}".format(self.file_only))
+       #      elif (not res) and (nome_tipologia_to_check == 'NC'):
+       #          self.logger.info('TIPOLOGIA NC INDIVIDUATA PER FILE {} --> '
+       #                           'CONSIDERO ESECUZIONE OCR COMPLETA'.format(self.file_only))
+       #          if os.path.exists(os.path.join(PNG_IMAGE_PATH, "NC", self.file_only + '.png')):
+       #              os.remove(os.path.join(PNG_IMAGE_PATH, 'NC', self.file_only + '.png'))
+       #  else:
+       #      self.logger.info('FILE {0} NON TROVATO NEL DB {1}'.format(self.file_only, db))
+       #
+       #  self.logger.info('IGNORO ANALISI OCR E VERIFICO CORRETTEZZA TIPOLOGIA')
+       #  self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
+       #
+       #  tipo_fir_list = []
+       #  for elem in TIPO_FIR:
+       #      if not elem == 'NC':
+       #          tipo_fir_list.append(elem)
+       #
+       #  for jj, tipo in enumerate(tipo_fir_list):
+       #      tlist = TIPO_FIR.get(tipo)['TEXT']
+       #      nwlist = []
+       #      for (nword, divy) in TIPO_FIR[tipo]['NO_WORD']:
+       #          nwlist.append(nword)
+       #
+       #      wlist = tlist + nwlist
+       #
+       #      word_like[tipo] = self.word_like_cond(wlist)
+       #      self.db = os.path.join(DB_BACKUP_PATH, db)
+       #      self.conn = sqlite3.connect(self.db)
+       #      self.cur = self.conn.cursor()
+       #
+       #      self.get_tipologia(tipo, word_like[tipo])
+       #      if not self.tipologia == 'NC':
+       #          TIPO_FIR[self.tipologia]['FILES'].append(self.file_only)
+       #          q = """
+       #              UPDATE "{table}"
+       #              SET tipologia = "{val_field}"
+       #              WHERE file = "{file}"
+       #          """.format(table='files_WEB' if self.web else 'files',
+       #                     val_field=self.nome_tipologia, file=self.file_only)
+       #          cur.execute(q)
+       #          conn.commit()
+       #          if not nome_tipologia_to_check == self.nome_tipologia:
+       #              self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A {2}'
+       #                               .format(self.file_only, nome_tipologia_to_check, self.nome_tipologia))
+       #              # SPOSTO IMMAGINE PNG NELLA CARTELLA "NUOVA TIPOLOGIA"
+       #              # E LO RIMUOVO DA QUELLA VECCHIA
+       #              if not nome_tipologia_to_check == 'NC':
+       #                  self.save_move_delete_png(info='PRODUTTORE', delete_from_folder=nome_tipologia_to_check)
+       #              else:
+       #                  self.save_move_delete_png(delete_from_folder=nome_tipologia_to_check)
+       #          else:
+       #              self.logger.info('TIPOLOGIA PER FILE {0} CONFERMATA A {1}'
+       #                               .format(self.file_only, nome_tipologia_to_check))
+       #              q = """
+       #                  SELECT *
+       #                  FROM OCR_FIR
+       #                  WHERE file = '{file}'
+       #              """.format(file=self.file_only)
+       #              res = cur.execute(q).fetchall()
+       #              if res:
+       #                  item = res[0]
+       #                  self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6],
+       #                                  'ocr_size': item[2]}
+       #          return self.ocr_fir
+       #      if jj == len(tipo_fir_list) - 1 and self.nome_tipologia == nome_tipologia_to_check:
+       #          self.nome_tipologia = 'NC'
+       #          self.ocr_fir = {}
+       #          q = """
+       #             DELETE FROM OCR_FIR
+       #             WHERE file = "{file}"
+       #          """.format(table='OCR_FIR', file=self.file_only)
+       #          cur.execute(q)
+       #          conn.commit()
+       #          q = """
+       #             UPDATE "{table}"
+       #             SET tipologia = "{val_field}"
+       #             WHERE file = "{file}"
+       #          """.format(table='files_WEB' if self.web else 'files',
+       #                     val_field=self.nome_tipologia, file=self.file_only)
+       #          cur.execute(q)
+       #          conn.commit()
+       #          # SPOSTO IMMAGINE PNG NELLA CARTELLA "NC"
+       #          # E LO RIMUOVO DA QUELLA VECCHIA
+       #          self.save_move_delete_png(delete_from_folder=nome_tipologia_to_check)
+       #          self.logger.info('ELENCO TIPOLOGIA TERMINATO')
+       #          self.logger.info('FILE {0} NON CONFERMATO A VECCHIA ED NON IDENTIFICATO A NUOVA TIPOLOGIA'
+       #                           .format(self.file_only))
+       #          self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A NC'
+       #                           .format(self.file_only, nome_tipologia_to_check))
+       #          return self.ocr_fir
 
         # CREA DB NEL CASO NON CI FOSSERO TABELLE
         # CREA TABELLE FROM SCRATCH SU HEROKU E FAI PROVE
@@ -334,13 +350,7 @@ class GetFileInfo:
             if self.tipologia == 'NC':
                 TIPO_FIR['NC']['FILES'].append(self.file_only)
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA "NC"
-                self.save_move_delete_png(info='PRODUTTORE')
-                # img = Image.open(self.file)
-                # img_copy = img.copy()
-                # img.close()
-                # copy_filepath = os.path.join(PNG_IMAGE_PATH, self.tipologia, self.file_only + '.png')
-                # img_copy.save(copy_filepath, 'png')
-
+                self.save_move_delete_png()
                 self.logger.info('TIPOLOGIA NON DETERMINATA PER {} --> '
                                  'NESSUNA INFO A DISPOSIZIONE\n\n\n'.format(self.file_only))
                 return
@@ -394,6 +404,7 @@ class GetFileInfo:
         # PAROLA LONTANA DA QUELLE CERCATE (ES. "ROTTAMI") MA CHE,
         # SE TROVATA, ESCLUDE LA TIPOLOGIA (ES. "TIPOLOGIA A")
         # ---- LA PAROLA INTRUSA PUO' TROVARSI IN UN QUADRANTE DIVERSO (DEFINITO DA divy) ----
+        # ---- LA PAROLA INTRUSA VIENE CERCATA NELLA PARTE SUPERIORE (coor_y < 200) ----
         nowords = [str(w) for (w, divy) in TIPO_FIR[tipo]['NO_WORD']]
         exc_word = "('" + "','".join(nowords) + "')"
         nowq = """
@@ -601,6 +612,10 @@ class GetFileInfo:
         cv2.imwrite("{}".format(cfilepath), gray)
         # RIMUOVO COPIA E FILE INTERO. MANTENGO SOLO IL RITAGLIO
         os.remove(copy_filepath)
+        # SE TROVO CHE NEI PASSATI OCR NON ERA STATO ANALIZZATO RIMUOVO PNG
+        if os.path.exists(os.path.join(
+                PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')):
+            os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png'))
 
         img_crop = Image.open(cfilepath)
         # d = pytesseract.image_to_data(img_crop, output_type=Output.DICT)
@@ -1097,7 +1112,10 @@ class GetFileInfo:
                 except Exception:
                     self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
-                self.save_move_delete_png(info='PRODUTTORE')
+                self.save_move_delete_png()
+                if os.path.exists(os.path.join(
+                        PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
+                    os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
@@ -1447,6 +1465,10 @@ class GetFileInfo:
             self.logger.info('NESSUNA PAROLA INDIVIDUATA. '
                              'NESSUN INSERIMENTO IN OCR {0} PER FILE {1}.'
                              .format(INFO_FIR[info.upper()]['TEXT'], self.file_only))
+            self.save_move_delete_png()
+            if os.path.exists(os.path.join(
+                    PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
+                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
             return
 
         # ELIMINO PAROLE OTTENUTE DA OCR AVENTI UNA LETTERA DIVERSA (ES. codine)
@@ -1478,6 +1500,14 @@ class GetFileInfo:
 
         self.logger.info('RANGE PAROLE SELEZIONATE ZONA {} : {}'.format(INFO_FIR[info.upper()]['TEXT'], rws))
         self.logger.info('\n{0} FINE RICERCA ZONA {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
+
+        # ELIMINO DICITURA PRODUTTORE PER FILE CHE E' STATO RUOTATO
+        if self.rotated_file:
+            orig_filename = self.file_only.split('_rot.png')[0]
+
+            if os.path.exists(os.path.join(
+                    PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png')):
+                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png'))
 
         self.ocr_fir = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
                         'ocr_size': '( {} - {} )'.format(self.crop_width, self.crop_height)}
@@ -1634,70 +1664,98 @@ def write_fir_list_todo():
         f.close()
 
 
-def check_remaining_firlist_todo():
-    fir_todo = []
-    with open('TOTAL_FIRLIST.txt', 'r') as f:
-        totlist = f.readlines()
-        for fir in totlist:
-            fir_todo.append(fir.replace('\n', ''))
-        f.close()
-
-    firdone = set()
-    with open(os.path.join(BASEPATH, 'FIRLIST_20210702.csv'), 'r') as f:
-        fird = f.readlines()
-        for fir in fird:
-            firdone.add(fir.replace('\n', ''))
-        f.close()
-
-    with open(os.path.join(BASEPATH, 'FIRLIST_20210708.csv'), 'r') as f:
-        fird = f.readlines()
-        for fir in fird:
-            firdone.add(fir.replace('\n', ''))
-        f.close()
-
-    logger.info('FIR TOTALI IN FIR BULK{}'.format(len(fir_todo)))
-    logger.info("FIR GIA' ANALIZZATI IN TOTALE{}".format(len(firdone)))
-
-    for elem in firdone:
-        if elem in fir_todo:
-            fir_todo.remove(elem)
-
-    logger.info('FIR DA CONSIDERARE {}'.format(len(fir_todo)))
-
-    return fir_todo
-
-
 def check_firlist_tipo_a():
-    firlist_tipo_a = os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['TIPO_A']['NAME']))
-    logger.info('{0} FIR DI TIPO {1} TROVATI'.format(len(firlist_tipo_a), TIPO_FIR['TIPO_A']['NAME']))
-    todo = set()
-    firlist_from_db = set()
-    no_ocr_ritaglio = set()
-    for datetime in ['20210702', '20210708']:
-        db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_{}.db'.format(datetime))
-        logger.info('FIR ANALIZZATI DA DB {}'.format(db))
-        conn = sqlite3.connect(db)
-        cur = conn.cursor()
-        for fir in firlist_tipo_a:
-            # CONSIDERO QUELLI CHE SONO STATI ANALIZZATI NEL RITAGLIO PRODUTTORE
-            if fir.endswith('_PRODUTTORE.png'):
-                fir = fir.split('_PRODUTTORE.png')[0]
-                todo.add(fir)
-                q = """
-                    SELECT file FROM files_WEB
-                    WHERE file like '{file}%'
-                    AND tipologia = '{tipo}';
-                """.format(file=fir.split('_PRODUTTORE')[0], tipo=TIPO_FIR['TIPO_A']['NAME'])
-                if cur.execute(q).fetchall():
-                    firlist_from_db.add(cur.execute(q).fetchall()[0][0])
-            else:
-                no_ocr_ritaglio.add(fir)
-        conn.close()
-    review = todo - firlist_from_db
-    logger.info('PAST TO REVIEW : {}'.format(len(review)))
-    logger.info('FIRLIST FROM DB : {}'.format(len(firlist_from_db)))
-    logger.info('NO OCR RITAGLIO {}'.format(len(no_ocr_ritaglio)))
-    logger.info('FIR DA CONTROLLARE = TODO = FIRLIST FROM DB + PAST TO REVIEW: {}'.format(len(todo)))
+    firlist_tipo_a = [
+        file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['TIPO_A']['NAME']))
+    ]
+    firset_from_db = []
+    no_ocr_ritaglio = []
+    from_folder = []
+    todo = []
+    db = os.path.join(DB_STATIC_PATH, 'OCR_MT_MERGE_OK_STATIC.db')
+    logger.info('FIR ANALIZZATI DA DB {}'.format(db))
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    for fir in firlist_tipo_a:
+        # CONSIDERO QUELLI CHE SONO STATI ANALIZZATI NEL RITAGLIO PRODUTTORE
+        if not fir.endswith('_PRODUTTORE'):
+            no_ocr_ritaglio.append('_'.join(fir.split('_')[:2]))
+        else:
+            from_folder.append('_'.join(fir.split('_')[:2]))
+    q = """
+        SELECT file FROM (
+        SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
+        LEFT JOIN files_WEB_20210702 t2
+        ON t1.file=t2.file
+        UNION 
+        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210708 t1
+        LEFT JOIN files_WEB_20210708 t2
+        ON t1.file=t2.file
+        UNION 
+        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
+        LEFT JOIN files_WEB_20210711 t2
+        ON t1.file=t2.file
+        ) AS U
+        where tipologia = '{tipo}'
+        ORDER BY file;
+    """.format(tipo=TIPO_FIR['TIPO_A']['NAME'])
+    for item in cur.execute(q).fetchall():
+        firset_from_db.append('_'.join(item[0].split('_')[:2]))
+    conn.close()
+    for elem in from_folder:
+        if elem not in firset_from_db:
+            todo.append(elem)
+    logger.info('FIRSET FROM DB : {}'.format(firset_from_db[:5]))
+    logger.info('FROM FOLDER : {}'.format(len(from_folder)))
+    logger.info('FROM FOLDER TIPO A = {0} FIR DI TIPO {1} TROVATI'
+                .format(len(firlist_tipo_a), TIPO_FIR['TIPO_A']['NAME']))
+    logger.info('NO OCR RITAGLIO : {}'.format(len(no_ocr_ritaglio)))
+    logger.info('FROM FOLDER =  FROM FOLDER TIPO A - NO OCR RITAGLIO --> {}'.format(len(from_folder)))
+    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {}'.format(len(todo)))
+    return todo
+
+def check_firlist_tipo_nc():
+    firlist_tipo_nc = [
+        file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['NC']['NAME']))
+    ]
+    firset_from_db = []
+    no_ocr_ritaglio = []
+    from_folder = []
+    todo = []
+    db = os.path.join(DB_STATIC_PATH, 'OCR_MT_MERGE_OK_STATIC.db')
+    logger.info('FIR ANALIZZATI DA DB {}'.format(db))
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    for fir in firlist_tipo_nc:
+        # CONSIDERO QUELLI CHE SONO STATI ANALIZZATI NEL RITAGLIO PRODUTTORE
+        if not fir.endswith('_PRODUTTORE'):
+            no_ocr_ritaglio.append('_'.join(fir.split('_')[:2]))
+        else:
+            from_folder.append('_'.join(fir.split('_')[:2]))
+    q = """
+        SELECT file FROM (
+        SELECT * FROM files_WEB_20210702 t1
+        UNION 
+        SELECT * FROM files_WEB_20210708 t1
+        UNION 
+        SELECT * FROM files_WEB_20210711 t1
+        ) AS U
+        where tipologia = '{tipo}'
+        ORDER BY file;
+    """.format(tipo=TIPO_FIR['NC']['NAME'])
+    for item in cur.execute(q).fetchall():
+        firset_from_db.append('_'.join(item[0].split('_')[:2]))
+    conn.close()
+    for elem in from_folder:
+        if elem not in firset_from_db:
+            todo.append(elem)
+    logger.info('FIRSET FROM DB : {}'.format(firset_from_db[:5]))
+    logger.info('FROM FOLDER : {}'.format(len(from_folder)))
+    logger.info('FROM FOLDER NC = {0} FIR DI TIPO {1} TROVATI'
+                .format(len(firlist_tipo_a), TIPO_FIR['NC']['NAME']))
+    logger.info('NO OCR RITAGLIO : {}'.format(len(no_ocr_ritaglio)))
+    logger.info('FROM FOLDER =  FROM FOLDER TIPO NC - NO OCR RITAGLIO --> {}'.format(len(from_folder)))
+    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {}'.format(len(todo)))
     return todo
 
 
@@ -1774,8 +1832,13 @@ if __name__ == '__main__':
     # FACCIO PARTIRE I PRIMI 1000 DEI FIR CARTELLA "BULK"
     # RIMUOVI OPPURE MANTIENI ESTENSIONE FILE IN load_files_tmp!!
     # listfir_todo = check_remaining_firlist_todo()
-    # listfir_todo = check_firlist_tipo_a()
-    listfir_todo = ['94107_CCI_000430']
+    # PORTARE I FIR TIPO_A DA NC NELLA PROPRIA CARTELLA CON PROCESSO AUTOMATIZZATO
+    # FAI CHECK DB STATIC E QUELLI MODIFICATI CON FUNZIONE CHECK_FIRLIST_TIPO_A()
+    # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
+    #listfir_todo = check_firlist_tipo_a()
+    listfir_todo = check_firlist_tipo_a()
+    listfir_todo = [item for item in listfir_todo]
+    # listfir_todo = ['96728_COBAT', '94709_B2B']
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in listfir_todo:  # listfir_todo[:1300]:
