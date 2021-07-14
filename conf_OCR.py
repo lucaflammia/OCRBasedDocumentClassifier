@@ -72,7 +72,7 @@ INFO_FIR = {
 
 COMMON_NO_WORD = [("torinese", "1-4"), ("pericolosi", "1-4"), ('filippo', "1-4"),
                   ('giovanni', "1-4"), ('viterbo', "1-4"), ("siciliarottami", "1-4"), ("sicilia", "1-4"),
-                  ("logistica", "1-4")]
+                  ("logistica", "1-4"), ('brugnano', "1-4"), ('cigacars', '1-4')]
 
 TIPO_A = {
     'TEXT': ["formulario", "rifiuti"],

@@ -117,7 +117,7 @@ class GetFileInfo:
 
         return wcond
 
-    def save_move_delete_png(self, info='', delete_from_folder=''):
+    def save_move_delete_png(self, info='', delete_from_folder=False):
         img = Image.open(self.file)
         img_copy = img.copy()
         img.close()
@@ -130,8 +130,8 @@ class GetFileInfo:
         img_copy.save(copy_filepath, 'png')
 
         if delete_from_folder:
-            os.remove(os.path.join(PNG_IMAGE_PATH, delete_from_folder,
-                               self.file_only + '_PRODUTTORE.png'))
+            if os.path.exists(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
+                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
 
     def get_full_info(self, full_info=''):
 
@@ -353,6 +353,10 @@ class GetFileInfo:
                 self.save_move_delete_png()
                 self.logger.info('TIPOLOGIA NON DETERMINATA PER {} --> '
                                  'NESSUNA INFO A DISPOSIZIONE\n\n\n'.format(self.file_only))
+                for tipo in TIPO_FIR:
+                    if os.path.exists(os.path.join(
+                            PNG_IMAGE_PATH, tipo, self.file_only + '_PRODUTTORE.png')):
+                        os.remove(os.path.join(PNG_IMAGE_PATH, tipo, self.file_only + '_PRODUTTORE.png'))
                 return
 
         res = self.check_file(table='OCR_FIR')
@@ -612,10 +616,6 @@ class GetFileInfo:
         cv2.imwrite("{}".format(cfilepath), gray)
         # RIMUOVO COPIA E FILE INTERO. MANTENGO SOLO IL RITAGLIO
         os.remove(copy_filepath)
-        # SE TROVO CHE NEI PASSATI OCR NON ERA STATO ANALIZZATO RIMUOVO PNG
-        if os.path.exists(os.path.join(
-                PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')):
-            os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png'))
 
         img_crop = Image.open(cfilepath)
         # d = pytesseract.image_to_data(img_crop, output_type=Output.DICT)
@@ -1112,10 +1112,7 @@ class GetFileInfo:
                 except Exception:
                     self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
-                self.save_move_delete_png()
-                if os.path.exists(os.path.join(
-                        PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
-                    os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
+                self.save_move_delete_png(delete_from_folder=True)
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
@@ -1129,6 +1126,7 @@ class GetFileInfo:
         if not words:
             self.logger.info('ANALISI OCR NON HA INDIVIDUATO ALCUNA PAROLA. '
                              'ESECUZIONE FILE {} TERMINATA'.format(self.file_only))
+            self.save_move_delete_png(delete_from_folder=True)
             return
 
         self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
@@ -1164,6 +1162,9 @@ class GetFileInfo:
                 if not words:
                     self.logger.info('ANALISI OCR NON HA INDIVIDUATO ALCUNA PAROLA. '
                                      'ESECUZIONE FILE {} TERMINATA'.format(self.file_only))
+                    if os.path.exists(os.path.join(
+                            PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
+                        os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
                     return
 
                 self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
@@ -1197,6 +1198,17 @@ class GetFileInfo:
                 if not words:
                     self.logger.info('ANALISI OCR NON HA INDIVIDUATO ALCUNA PAROLA. '
                                      'ESECUZIONE FILE {} TERMINATA'.format(self.file_only))
+
+                    if self.rotated_file:
+                        orig_filename = self.file_only.split('_rot.png')[0]
+
+                        if os.path.exists(os.path.join(
+                                PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png')):
+                            os.remove(
+                                os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png'))
+                    if os.path.exists(os.path.join(
+                            PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
+                        os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
                     return
 
                 self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'
@@ -1211,6 +1223,9 @@ class GetFileInfo:
                     break
 
         if self.ocr_fir:
+            if os.path.exists(os.path.join(
+                    PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')):
+                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png'))
             self.logger.info('INSERIMENTO IN TABELLA OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']))
             self.insert_info_db(self.ocr_fir)
 
@@ -1465,10 +1480,7 @@ class GetFileInfo:
             self.logger.info('NESSUNA PAROLA INDIVIDUATA. '
                              'NESSUN INSERIMENTO IN OCR {0} PER FILE {1}.'
                              .format(INFO_FIR[info.upper()]['TEXT'], self.file_only))
-            self.save_move_delete_png()
-            if os.path.exists(os.path.join(
-                    PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
-                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
+            self.save_move_delete_png(delete_from_folder=True)
             return
 
         # ELIMINO PAROLE OTTENUTE DA OCR AVENTI UNA LETTERA DIVERSA (ES. codine)
@@ -1506,8 +1518,8 @@ class GetFileInfo:
             orig_filename = self.file_only.split('_rot.png')[0]
 
             if os.path.exists(os.path.join(
-                    PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png')):
-                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '_PRODUTTORE.png'))
+                    PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '.png')):
+                os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, orig_filename + '.png'))
 
         self.ocr_fir = {'ocr_prod': None, 'ocr_trasp': None, 'ocr_racc': None, 'ocr_{}'.format(info): rws,
                         'ocr_size': '( {} - {} )'.format(self.crop_width, self.crop_height)}
@@ -1663,6 +1675,20 @@ def write_fir_list_todo():
             f.write('{}\n'.format(item.split('.jpg')[0]))
         f.close()
 
+def check_duplicate_tipo_a():
+    firlist_tipo_a = [
+        file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['TIPO_A']['NAME']))
+    ]
+    single = []
+    duplicate = []
+    for elem in firlist_tipo_a:
+        elem = elem.split('_')[0]
+        if elem in single:
+            duplicate.append(elem)
+        single.append(elem)
+
+    return duplicate
+
 
 def check_firlist_tipo_a():
     firlist_tipo_a = [
@@ -1672,7 +1698,8 @@ def check_firlist_tipo_a():
     no_ocr_ritaglio = []
     from_folder = []
     todo = []
-    db = os.path.join(DB_STATIC_PATH, 'OCR_MT_MERGE_OK_STATIC.db')
+    diffdb = []
+    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
@@ -1695,6 +1722,10 @@ def check_firlist_tipo_a():
         SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
         LEFT JOIN files_WEB_20210711 t2
         ON t1.file=t2.file
+        UNION
+        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
+        LEFT JOIN files_WEB_20210714 t2
+        ON t1.file=t2.file
         ) AS U
         where tipologia = '{tipo}'
         ORDER BY file;
@@ -1705,13 +1736,17 @@ def check_firlist_tipo_a():
     for elem in from_folder:
         if elem not in firset_from_db:
             todo.append(elem)
-    logger.info('FIRSET FROM DB : {}'.format(firset_from_db[:5]))
+    for elem in firset_from_db:
+        if elem not in from_folder:
+            diffdb.append(elem)
+    logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
     logger.info('FROM FOLDER : {}'.format(len(from_folder)))
     logger.info('FROM FOLDER TIPO A = {0} FIR DI TIPO {1} TROVATI'
                 .format(len(firlist_tipo_a), TIPO_FIR['TIPO_A']['NAME']))
     logger.info('NO OCR RITAGLIO : {}'.format(len(no_ocr_ritaglio)))
     logger.info('FROM FOLDER =  FROM FOLDER TIPO A - NO OCR RITAGLIO --> {}'.format(len(from_folder)))
-    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {}'.format(len(todo)))
+    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
+    logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
     return todo
 
 def check_firlist_tipo_nc():
@@ -1722,7 +1757,7 @@ def check_firlist_tipo_nc():
     no_ocr_ritaglio = []
     from_folder = []
     todo = []
-    db = os.path.join(DB_STATIC_PATH, 'OCR_MT_MERGE_OK_STATIC.db')
+    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
@@ -1837,8 +1872,10 @@ if __name__ == '__main__':
     # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
     #listfir_todo = check_firlist_tipo_a()
     listfir_todo = check_firlist_tipo_a()
-    listfir_todo = [item for item in listfir_todo]
-    # listfir_todo = ['96728_COBAT', '94709_B2B']
+    # DA TENERE NELLA LISTA FINALE TIPO A MERGE CHECK
+    # ['103043_DUG5600451', '103352_446281', '103483_DUG560143', '106256_Sat', '106257_Sat',
+    # '107161_DUG807705', '108521_452063']
+    quit()
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in listfir_todo:  # listfir_todo[:1300]:
