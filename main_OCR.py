@@ -384,15 +384,14 @@ class GetFileInfo:
                     ( parola like '{s00}%{s01}' OR
                     parola like '%{s10}' OR
                     parola like '{s20}%')
-                """.format(s00=nword[:3], s01=nword[-3:], s10=nword[-8:], s20=nword[5:])
+                """.format(s00=nword[:3], s01=nword[-3:], s10=nword[-8:], s20=nword[4:])
             else:
                 plike = """
                     ( parola like '{s00}%{s01}')
                 """.format(s00=nword[:3], s01=nword[-3:])
 
             nowq = """
-                {sub_body}
-                WHERE
+                {sub_body} WHERE
                 ({clike} OR {plike} ) AND
                 p.id < {pid} + {did} AND
                 p.id > {pid} - {did} AND
@@ -408,15 +407,15 @@ class GetFileInfo:
         # PAROLA LONTANA DA QUELLE CERCATE (ES. "ROTTAMI") MA CHE,
         # SE TROVATA, ESCLUDE LA TIPOLOGIA (ES. "TIPOLOGIA A")
         # ---- LA PAROLA INTRUSA PUO' TROVARSI IN UN QUADRANTE DIVERSO (DEFINITO DA divy) ----
-        # ---- LA PAROLA INTRUSA VIENE CERCATA NELLA PARTE SUPERIORE (coor_y < 200) ----
+        # ---- LA PAROLA INTRUSA VIENE CERCATA NELLA PARTE SUPERIORE (coor_y < 600) ----
         nowords = [str(w) for (w, divy) in TIPO_FIR[tipo]['NO_WORD']]
         exc_word = "('" + "','".join(nowords) + "')"
         nowq = """
-            {sub_body}
-            WHERE
+            {sub_body} WHERE
             (parola in {exc_word}) AND
             div_x = '1-2' AND
             div_y = '{divy}' AND
+            coor_y < 600 AND
             file = '{file}';
         """.format(sub_body=self.qy.sub_body, exc_word=exc_word, divy=divy, file=self.file_only)
 
@@ -1726,6 +1725,10 @@ def check_firlist_tipo_a():
         SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
         LEFT JOIN files_WEB_20210714 t2
         ON t1.file=t2.file
+        UNION
+        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210715 t1
+        LEFT JOIN files_WEB_20210715 t2
+        ON t1.file=t2.file
         ) AS U
         where tipologia = '{tipo}'
         ORDER BY file;
@@ -1747,26 +1750,18 @@ def check_firlist_tipo_a():
     logger.info('FROM FOLDER =  FROM FOLDER TIPO A - NO OCR RITAGLIO --> {}'.format(len(from_folder)))
     logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
     logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
-    return todo
 
 def check_firlist_tipo_nc():
     firlist_tipo_nc = [
         file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['NC']['NAME']))
     ]
     firset_from_db = []
-    no_ocr_ritaglio = []
-    from_folder = []
     todo = []
+    diffdb = []
     db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
-    for fir in firlist_tipo_nc:
-        # CONSIDERO QUELLI CHE SONO STATI ANALIZZATI NEL RITAGLIO PRODUTTORE
-        if not fir.endswith('_PRODUTTORE'):
-            no_ocr_ritaglio.append('_'.join(fir.split('_')[:2]))
-        else:
-            from_folder.append('_'.join(fir.split('_')[:2]))
     q = """
         SELECT file FROM (
         SELECT * FROM files_WEB_20210702 t1
@@ -1774,24 +1769,27 @@ def check_firlist_tipo_nc():
         SELECT * FROM files_WEB_20210708 t1
         UNION 
         SELECT * FROM files_WEB_20210711 t1
+        UNION 
+        SELECT * FROM files_WEB_20210714 t1
+        UNION 
+        SELECT * FROM files_WEB_20210715 t1
         ) AS U
         where tipologia = '{tipo}'
         ORDER BY file;
     """.format(tipo=TIPO_FIR['NC']['NAME'])
     for item in cur.execute(q).fetchall():
-        firset_from_db.append('_'.join(item[0].split('_')[:2]))
+        firset_from_db.append(item[0])
     conn.close()
-    for elem in from_folder:
+    for elem in firlist_tipo_nc:
         if elem not in firset_from_db:
             todo.append(elem)
-    logger.info('FIRSET FROM DB : {}'.format(firset_from_db[:5]))
-    logger.info('FROM FOLDER : {}'.format(len(from_folder)))
-    logger.info('FROM FOLDER NC = {0} FIR DI TIPO {1} TROVATI'
-                .format(len(firlist_tipo_a), TIPO_FIR['NC']['NAME']))
-    logger.info('NO OCR RITAGLIO : {}'.format(len(no_ocr_ritaglio)))
-    logger.info('FROM FOLDER =  FROM FOLDER TIPO NC - NO OCR RITAGLIO --> {}'.format(len(from_folder)))
-    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {}'.format(len(todo)))
-    return todo
+    for elem in firset_from_db:
+        if elem not in firlist_tipo_nc:
+            diffdb.append(elem)
+    logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
+    logger.info('FROM FOLDER NC = {0} FIR'.format(len(firlist_tipo_nc)))
+    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
+    logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
 
 
 # def read_full_info(info=''):
@@ -1870,16 +1868,15 @@ if __name__ == '__main__':
     # PORTARE I FIR TIPO_A DA NC NELLA PROPRIA CARTELLA CON PROCESSO AUTOMATIZZATO
     # FAI CHECK DB STATIC E QUELLI MODIFICATI CON FUNZIONE CHECK_FIRLIST_TIPO_A()
     # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
-    #listfir_todo = check_firlist_tipo_a()
-    listfir_todo = check_firlist_tipo_a()
-    # DA TENERE NELLA LISTA FINALE TIPO A MERGE CHECK
-    # ['103043_DUG5600451', '103352_446281', '103483_DUG560143', '106256_Sat', '106257_Sat',
-    # '107161_DUG807705', '108521_452063']
-    quit()
+    check_firlist_tipo_a()
+    check_firlist_tipo_nc()
+    listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
+    # [item for item in listfir_todo]
+    #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
     load_files = []
     for elem in listfir_todo:  # listfir_todo[:1300]:
-        load_files.append(elem.split('.jpg')[0])
+        load_files.append(elem.split('.')[0])
     files = []
     # full_info = read_full_info(info='PRODUTTORI')
     # # write_info_produttori_to_csv(full_info)

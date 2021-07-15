@@ -46,7 +46,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro', 'lario'
         ]
     },
     'TRASP': {
