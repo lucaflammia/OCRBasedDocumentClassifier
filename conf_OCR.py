@@ -100,7 +100,7 @@ TIPO_A_BIS = {
 TIPO_B = {
     'TEXT': ["identificazione", "rimondi"],
     'SIZE_OCR': [0, 300, 2356, 1000],
-    'NO_WORD': COMMON_NO_WORD + [('annunziata', "1-4")],
+    'NO_WORD': COMMON_NO_WORD + [('annunziata', "1-4"), ('ecologia', '1-4')],
     'DLT_ID': 45,
     'NAME': 'FIR - COBAT',
     'FILES': []
@@ -109,7 +109,8 @@ TIPO_B = {
 TIPO_C = {
     'TEXT': ["ecologia", "unipersonale"],
     'SIZE_OCR': [0, 650, 2356, 1050],
-    'NO_WORD': [('aglioni', "1-4"), ('angelo', "1-4")] + COMMON_NO_WORD,
+    'NO_WORD': [('aglioni', "1-4"), ('angelo', "1-4"), ('rosignano', '1-4'), ('morelline', '1-4'),
+                ('systems', '1-4'), ('ecologica', '1-4'), ('telefono', '1-4')] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FIR - TRS',
     'FILES': []
@@ -222,26 +223,10 @@ COMMON_FIR_INFO = {
 }
 
 
-class CreazioneDatabase:
+class CreateNewDatabase:
     def __init__(self, db, web=False):
         self.conn = sqlite3.connect(db)
         self.cur = self.conn.cursor()
-        self.tb_files = """
-            CREATE TABLE if not exists files
-            (id INTEGER PRIMARY KEY AUTOINCREMENT, file VARCHAR(50) NOT NULL,
-            tipologia VARCHAR(50) NOT NULL, produttore VARCHAR(50) NOT NULL,
-            trasportatore VARCHAR(50) NOT NULL, raccoglitore VARCHAR(50) NOT NULL, ts TIMESTAMP);
-        """
-        self.tb_parole = """
-            CREATE TABLE if not exists parole (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            parola VARCHAR(255) NOT NULL,
-            coor_x FLOAT(10,5) NOT NULL,
-            coor_y FLOAT(10,5) NOT NULL,
-            id_file INTEGER NOT NULL,
-            ts TIMESTAMP,
-            FOREIGN KEY (id_file) REFERENCES files (id) );
-        """
         self.tb_files_WEB = """
             CREATE TABLE if not exists files_WEB
             (id INTEGER PRIMARY KEY AUTOINCREMENT, file VARCHAR(50) NOT NULL,
@@ -262,12 +247,8 @@ class CreazioneDatabase:
             ts TIMESTAMP,
             FOREIGN KEY (id_file) REFERENCES files_WEB (id) );
         """
-        if web:
-            self.cur.execute(self.tb_files_WEB)
-            self.cur.execute(self.tb_parole_WEB)
-        else:
-            self.cur.execute(self.tb_files)
-            self.cur.execute(self.tb_parole)
+        self.cur.execute(self.tb_files_WEB)
+        self.cur.execute(self.tb_parole_WEB)
 
         self.tb_OCR_prod = """
             CREATE TABLE if not exists OCR_PRODUTTORE (
@@ -293,16 +274,6 @@ class CreazioneDatabase:
         """
         self.cur.execute(self.tb_OCR_FIR)
 
-        self.tb_COMMON_WORDS = """
-            CREATE TABLE if not exists COMMON_WORDS (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            parola VARCHAR(255) NOT NULL,
-            tipologia VARCHAR(50) NOT NULL,
-            info VARCHAR(255) NOT NULL,
-            ts TIMESTAMP);
-        """
-        self.cur.execute(self.tb_COMMON_WORDS)
-
         self.conn.commit()
 
     def __del__(self):
@@ -310,20 +281,22 @@ class CreazioneDatabase:
 
 
 class QueryFir:
-    def __init__(self, web=False):
+    def __init__(self, web=False, dtm=''):
         if web:
             self.body = """
                 SELECT parola, coor_x, coor_y, file
-                FROM parole_WEB p
-                LEFT JOIN "files_WEB" f
+                FROM "{table1}" p
+                LEFT JOIN "{table2}" f
                 ON (p.id_file=f.id)
-            """
+            """.format(table1='parole_WEB_{}'.format(dtm) if dtm else 'parole_WEB',
+                       table2='files_WEB_{}'.format(dtm) if dtm else 'files_WEB')
             self.sub_body = """
                 SELECT p.id, p.coor_x, p.coor_y
-                FROM parole_WEB p
-                LEFT JOIN files_WEB f
+                FROM "{table1}" p
+                LEFT JOIN "{table2}" f
                 ON (p.id_file=f.id)
-            """
+            """.format(table1='parole_WEB_{}'.format(dtm) if dtm else 'parole_WEB',
+                       table2='files_WEB_{}'.format(dtm) if dtm else 'files_WEB')
         else:
             self.body = """
                 SELECT parola, coor_x, coor_y, file
