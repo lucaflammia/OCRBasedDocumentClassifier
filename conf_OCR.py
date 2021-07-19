@@ -32,7 +32,7 @@ INFO_FIR = {
         'TABLE': 'PRODUTTORI',
         'BTWN_WORD': {
             'INIZ': ['detentore', 'produttore', 'denominazione', 'ragione', 'sociale'],
-            'FIN': ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'albo']
+            'FIN': ['unita', 'locale', 'codice', 'fiscale', 'autorizzazione', 'albo', 'destinatario']
         },
         'NO_WORD_OCR': [
             'produttore', 'detentore', 'registro', 'numero', 'luogo', 'destinatario', 'albo', 'trasportatore',
@@ -46,7 +46,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro', 'lario'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro', 'lario', 'falbo'
         ]
     },
     'TRASP': {
@@ -79,7 +79,8 @@ TIPO_A = {
     'SIZE_OCR': [0, 0, 2356, 700],
     'NO_WORD': [("identificazione", "1-4"), ("mondoservizi", "1-4"),
                 ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
-                ("itrofer", "1-4"), ("circolare", "1-4")] + COMMON_NO_WORD,
+                ("itrofer", "1-4"), ("circolare", "1-4"), ('rosignano', '1-4'),
+                ('morelline', '1-4'),] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []
@@ -90,7 +91,8 @@ TIPO_A_BIS = {
     'SIZE_OCR': [0, 0, 2356, 700],
     'NO_WORD': [("identificazione", "1-4"), ("mondoservizi", "1-4"),
                 ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
-                ("itrofer", "1-4"), ("circolare", "1-4")] + COMMON_NO_WORD,
+                ("itrofer", "1-4"), ("circolare", "1-4"), ('rosignano', '1-4'),
+                ('morelline', '1-4'),] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []

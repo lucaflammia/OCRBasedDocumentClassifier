@@ -169,10 +169,10 @@ class GetFileInfo:
                 where file = '{file}';
             """.format(dtm=dtm, file=self.file_only)
             res = self.cur.execute(q).fetchall()
-            if not res:
+            if (not kk == len(dtms) - 1) and (not res):
                 self.logger.info('FILE {0} NON TROVATO NEL DB {1}'.format(self.file_only, self.db))
                 continue
-            elif not res and kk == len(dtms) - 1:
+            elif (kk == len(dtms) - 1) and (not res):
                 self.logger.info('FILE {0} NON PRESENTE NEI DB PASSATI'.format(self.file_only))
                 return self.ocr_fir
 
@@ -187,7 +187,7 @@ class GetFileInfo:
             self.check_dtm = dtm
             break
 
-        self.logger.info('IGNORO ANALISI OCR E VERIFICO CORRETTEZZA TIPOLOGIA')
+        self.logger.info('{0} IGNORO ANALISI OCR E VERIFICO CORRETTEZZA TIPOLOGIA {0}'.format('-' * 20))
 
         tipo_fir_list = []
         for elem in TIPO_FIR:
@@ -232,8 +232,10 @@ class GetFileInfo:
                 else:
                     self.save_move_delete_png(delete_from_folder=nome_tipologia_to_check)
             else:
-                self.logger.info('TIPOLOGIA PER FILE {0} CONFERMATA A {1}'
-                                 .format(self.file_only, nome_tipologia_to_check))
+                self.logger.info('{0} TIPOLOGIA PER FILE {1} CONFERMATA A {2} {0}'
+                                 .format('+' * 20, self.file_only, nome_tipologia_to_check))
+                # INSERISCO IMMAGINE NELLA CARTELLA ASSOCIATA (OVERKILL MA PER SICUREZZA RIPETO)
+                self.save_move_delete_png(info='PRODUTTORE')
                 q = """
                     SELECT *
                     FROM "{table}"
@@ -246,7 +248,6 @@ class GetFileInfo:
                                     'ocr_size': item[2]}
             break
 
-        self.logger.info('SELF {} TO CHECK {}'.format(self.nome_tipologia, nome_tipologia_to_check))
         if self.nome_tipologia != nome_tipologia_to_check:
             self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A {2}'
                              .format(self.file_only, nome_tipologia_to_check, self.nome_tipologia))
@@ -262,8 +263,9 @@ class GetFileInfo:
             # SPOSTO IMMAGINE PNG NELLA CARTELLA "NC"
             # E LO RIMUOVO DA QUELLA VECCHIA
             if self.nome_tipologia == 'NC':
+                self.cur = self.conn.cursor()
                 q = """
-                   DELETE FROM "{table}"
+                   DELETE FROM {table}
                    WHERE file = "{file}"
                 """.format(table='OCR_FIR_{}'.format(self.check_dtm), file=self.file_only)
                 self.cur.execute(q)
@@ -495,11 +497,17 @@ class GetFileInfo:
 
             else:
                 clike = '(' + ' or '.join(word_like[txt]) + ')'
-                plike = """
-                    (parola like '{s00}%{s01}' OR
-                    parola like '%{s10}%' OR
-                    parola like '{s20}%')
-                """.format(s00=txt[:2], s01=txt[-2:], s10=txt[2:-2], s20=txt[:3])
+                if len(txt) > 8:
+                    plike = """
+                        (parola like '{s00}%{s01}' OR
+                        parola like '%{s10}%' OR
+                        parola like '{s20}%')
+                    """.format(s00=txt[:2], s01=txt[-2:], s10=txt[3:-3], s20=txt[:4])
+                else:
+                    plike = """
+                        (parola like '{s00}%{s01}' OR
+                        parola like '{s20}%')
+                    """.format(s00=txt[:2], s01=txt[-2:], s20=txt[:4])
 
                 q = """
                     {body} WHERE
@@ -664,7 +672,9 @@ class GetFileInfo:
         if not data.get(info_fir):
             return None, None, None
 
-        parole, id_st, id_fin = self.query_info_db(data)
+        parole, id_dict = self.query_info_db(data)
+        id_st = id_dict['ID_START']
+        id_fin = id_dict['ID_FIN']
 
         self.logger.info('FINE ANALISI OCR RITAGLIO {0} PER FILE {1}'
                          .format(INFO_FIR[info.upper()]['TEXT'], self.file_only))
@@ -683,9 +693,10 @@ class GetFileInfo:
             self.file_only = '_'.join(self.file.split('/')[-1].split('.')[0].split('_')[:3])
         self.logger.info('NUOVO NOME DOPO ROTAZIONE : {}'.format(self.file_only))
         q = """
-            UPDATE files_WEB SET file = '{rot_file}'
+            UPDATE files_WEB{dtm} SET file = '{rot_file}'
             WHERE file = '{orig_file}'
-        """.format(rot_file=self.file_only, orig_file=orig_file_only)
+        """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                   rot_file=self.file_only, orig_file=orig_file_only)
         self.cur.execute(q)
         self.conn.commit()
         os.remove(os.path.join(orig_file))
@@ -801,7 +812,6 @@ class GetFileInfo:
                     tipologia != 'NC'
                 """.format(dtm='_{}'
                            .format(self.check_dtm) if self.check_dtm else '', file=self.file_only)
-                self.logger.info(q)
         elif table.startswith('parole_WEB'):
             if rotation:
                 q = """
@@ -844,9 +854,9 @@ class GetFileInfo:
 
     def query_info_db(self, data):
         q = """
-            SELECT id FROM files_WEB
+            SELECT id FROM files_WEB{dtm}
             WHERE file = "{file}"
-        """.format(file=self.file_only)
+        """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', file=self.file_only)
 
         id_file = self.cur.execute(q).fetchall()[0][0]
 
@@ -908,20 +918,28 @@ class GetFileInfo:
                     res_par = re.sub('\W', '', res_par)
                     # res_par = re.sub('[\[()‘“~/?+"\'_.=~\-\]]', '', res_par)
                     if res_par:
+                        self.conn = sqlite3.connect(self.db)
+                        self.cur = self.conn.cursor()
                         q = """
-                            INSERT INTO {table}(parola,id_file,flt,ts)
+                            INSERT INTO {table}{dtm}(parola,id_file,flt,ts)
                             VALUES ("{par}", "{id_file}", "{flt}", CURRENT_TIMESTAMP)
-                        """.format(table='OCR_{}'.format(info_fir), par=res_par, id_file=id_file, flt=self.flt)
+                        """.format(table='OCR_{}'.format(info_fir),
+                                   dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', par=res_par,
+                                   id_file=id_file, flt=self.flt)
                         self.cur.execute(q)
                         self.conn.commit()
                 elif isinstance(res_par, list):  # CASO 'PRODUTTORE/DETENTORE'
                     for rpar in res_par:
                         rpar = re.sub('_', '', rpar)
                         if rpar:
+                            self.conn = sqlite3.connect(self.db)
+                            self.cur = self.conn.cursor()
                             q = """
-                                INSERT INTO {table}(parola,id_file,flt,ts)
+                                INSERT INTO {table}{dtm}(parola,id_file,flt,ts)
                                 VALUES ("{par}", "{id_file}", "{flt}", CURRENT_TIMESTAMP)
-                            """.format(table='OCR_{}'.format(info_fir), par=rpar, id_file=id_file, flt=self.flt)
+                            """.format(table='OCR_{}'.format(info_fir),
+                                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', par=rpar,
+                                       id_file=id_file, flt=self.flt)
                             self.cur.execute(q)
                             self.conn.commit()
         else:
@@ -929,41 +947,44 @@ class GetFileInfo:
             self.logger.info('NESSUN INSERIMENTO IN TABELLA OCR_{} PER FILE {}'.format(info_fir, self.file_only))
 
         q = """
-            SELECT parola FROM {table}
+            SELECT parola FROM {table}{dtm}
             WHERE id_file = '{id_file}'
-        """.format(table='OCR_{}'.format(info_fir), id_file=id_file)
+        """.format(table='OCR_{}'.format(info_fir),
+                   dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=id_file)
 
         parole = []
         for par in self.cur.execute(q).fetchall():
             parole.append(par[0])
 
-        q = """
-            SELECT id FROM {table}
-            WHERE id_file = '{id_file}'
-            ORDER BY id ASC
-            LIMIT 1
-        """.format(table='OCR_{}'.format(info_fir), id_file=id_file)
+        id_dict = {}
+        for ord in ['ASC', 'DESC']:
 
-        id_st = self.cur.execute(q).fetchall()[0][0]
+            q = """
+                SELECT id FROM {table}{dtm}
+                WHERE id_file = '{id_file}'
+                ORDER BY id {ord}
+                LIMIT 1
+            """.format(table='OCR_{}'.format(info_fir),
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=id_file, ord=ord)
 
-        q = """
-            SELECT id FROM {table}
-            WHERE id_file = '{id_file}'
-            ORDER BY id DESC
-            LIMIT 1
-        """.format(table='OCR_{}'.format(info_fir), id_file=id_file)
+            if ord == 'ASC':
+                id_dict['ID_START'] = self.cur.execute(q).fetchall()[0][0]
+            else:
+                id_dict['ID_FIN'] = self.cur.execute(q).fetchall()[0][0]
 
-        id_fin = self.cur.execute(q).fetchall()[0][0]
-
-        return parole, id_st, id_fin
+        return parole, id_dict
 
     def insert_info_db(self, data):
+        self.conn = sqlite3.connect(self.db)
+        self.cur = self.conn.cursor()
         q = """
-            INSERT INTO OCR_FIR (file,ocr_size, flt,ocr_prod,ocr_trasp,ocr_racc,ts)
+            INSERT INTO OCR_FIR{dtm} (file,ocr_size, flt,ocr_prod,ocr_trasp,ocr_racc,ts)
                 VALUES ("{file}", "{ocr_size}", "{flt}", "{ocr_prod}", "{ocr_trasp}", "{ocr_racc}", CURRENT_TIMESTAMP)
-            """.format(file=self.file_only, ocr_size=data['ocr_size'], flt=self.flt, ocr_prod=data['ocr_prod'],
+            """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                       file=self.file_only, ocr_size=data['ocr_size'], flt=self.flt, ocr_prod=data['ocr_prod'],
                        ocr_trasp=data['ocr_trasp'], ocr_racc=data['ocr_racc'])
 
+        self.logger.info(q)
         self.cur.execute(q)
         self.conn.commit()
 
@@ -1009,10 +1030,11 @@ class GetFileInfo:
     def aggiorna_campo_tabella(self, field='', val_field=''):
 
         q = """
-            UPDATE "{table}"
-            SET "{field}" = "{val_field}"
+            UPDATE {table}{dtm}
+            SET {field} = "{val_field}"
             WHERE file = "{file}"
-        """.format(table='files_WEB' if self.web else 'files', field=field,
+        """.format(table='files_WEB' if self.web else 'files',
+                   dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', field=field,
                    val_field=val_field, file=self.file_only)
 
         self.cur.execute(q)
@@ -1032,14 +1054,15 @@ class GetFileInfo:
                 clike = '(' + ' or '.join(word_like[txt]) + ')'
                 q = """
                     SELECT t1.id, parola
-                    FROM {table} t1
-                    LEFT JOIN files_WEB t2
+                    FROM {table}{dtm} t1
+                    LEFT JOIN files_WEB{dtm} t2
                     ON (t1.id_file=t2.id)
                     WHERE
                     file = '{file}' AND
                     {clike}
                     LIMIT 1;
                 """.format(table='OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']),
+                           dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
                            file=self.file_only, clike=clike)
 
                 if self.cur.execute(q).fetchall():
@@ -1057,7 +1080,7 @@ class GetFileInfo:
                         and (jj == len(btw_words[1]) - 1) and (len(delim_words) - len_dw_st == 0):
                     # SE NON TROVO ALCUNA PAROLA CHE IDENTIFICA FINE RITAGLIO
                     self.logger.info('NON TROVATA ALCUNA PAROLA CHE IDENTIFICA FINE RITAGLIO')
-                    self.logger.info("CONSIDERO FINE INFO DALl' ULTIMO ID")
+                    self.logger.info("VALUTO FINE INFO INCLUDENDO FINO ULTIMO ID")
                     delim_words['END_INFO'] = [(id_fin, 'NO WORD', 'EOF')]
 
         self.logger.info('PAROLE CHIAVE TROVATE CHE DELIMITANO INFO {}'.format(delim_words))
@@ -1418,13 +1441,14 @@ class GetFileInfo:
         for ii, rx in enumerate(r_idx):
             q = """
                 SELECT parola
-                FROM {table} t1
-                LEFT JOIN files_WEB t2
+                FROM {table}{dtm} t1
+                LEFT JOIN files_WEB{dtm} t2
                 ON (t1.id_file=t2.id)
                 WHERE
                 file = '{file}' AND
                 t1.id BETWEEN {rx_st} AND {rx_fin};
             """.format(table='OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']),
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
                        file=self.file_only, rx_st=rx[0] + 1, rx_fin=rx[1] - 1)
 
             rwords.append([item[0].lower() for item in self.cur.execute(q).fetchall()])
@@ -1528,12 +1552,14 @@ class GetFileInfo:
             clike = '(' + ' or '.join(word_like[words_lst]) + ')'
             subq = """
                 SELECT p.parola
-                FROM OCR_{table} p
-                LEFT JOIN files_WEB f
+                FROM {table}{dtm} p
+                LEFT JOIN files_WEB{dtm} f
                 ON (p.id_file=f.id)WHERE
                 file = '{file}' AND
                 {clike};
-            """.format(table=INFO_FIR[info.upper()]['TEXT'], file=self.file_only, clike=clike)
+            """.format(table='OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']),
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                       file=self.file_only, clike=clike)
 
             # se parola like dà risultato esco subito
             res = self.cur.execute(subq).fetchall()
@@ -1747,31 +1773,50 @@ def check_firlist_tipologia(tipo='', do_ocr=False):
             no_ocr_ritaglio.append('_'.join(fir.split('_')[:2]))
         else:
             from_folder.append('_'.join(fir.split('_')[:2]))
+
+    if not tipo == 'NC':
+        sub_q = """
+            SELECT file FROM (
+            SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
+            LEFT JOIN files_WEB_20210702 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210708 t1
+            LEFT JOIN files_WEB_20210708 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
+            LEFT JOIN files_WEB_20210711 t2
+            ON t1.file=t2.file
+            UNION
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
+            LEFT JOIN files_WEB_20210714 t2
+            ON t1.file=t2.file
+            UNION
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210715 t1
+            LEFT JOIN files_WEB_20210715 t2
+            ON t1.file=t2.file
+            ) AS U
+        """
+    else:
+        sub_q = """
+            SELECT file FROM (
+            SELECT * FROM files_WEB_20210702 t1
+            UNION 
+            SELECT * FROM files_WEB_20210708 t1
+            UNION 
+            SELECT * FROM files_WEB_20210711 t1
+            UNION 
+            SELECT * FROM files_WEB_20210714 t1
+            UNION 
+            SELECT * FROM files_WEB_20210715 t1
+            ) AS U
+        """
+
     q = """
-        SELECT file FROM (
-        SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
-        LEFT JOIN files_WEB_20210702 t2
-        ON t1.file=t2.file
-        UNION 
-        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210708 t1
-        LEFT JOIN files_WEB_20210708 t2
-        ON t1.file=t2.file
-        UNION 
-        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
-        LEFT JOIN files_WEB_20210711 t2
-        ON t1.file=t2.file
-        UNION
-        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
-        LEFT JOIN files_WEB_20210714 t2
-        ON t1.file=t2.file
-        UNION
-        SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210715 t1
-        LEFT JOIN files_WEB_20210715 t2
-        ON t1.file=t2.file
-        ) AS U
-        where tipologia = '{tipo}'
+        {sub_q} WHERE tipologia = '{tipo}'
         ORDER BY file;
-    """.format(tipo=TIPO_FIR['{}'.format(tipo.upper())]['NAME'])
+    """.format(sub_q=sub_q, tipo=TIPO_FIR['{}'.format(tipo.upper())]['NAME'])
     for item in cur.execute(q).fetchall():
         firset_from_db.append('_'.join(item[0].split('_')[:2]))
         firset_from_db_bulk.append('_'.join(item[0].split('_')[:1]))
@@ -1790,6 +1835,7 @@ def check_firlist_tipologia(tipo='', do_ocr=False):
     logger.info('FROM FOLDER =  FROM FOLDER {0} - NO OCR RITAGLIO --> {1}'.format(tipo.upper(), len(from_folder)))
     logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
     logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
+    # NEL CASO NON ABBIA FIR NELLA CARTELLA ASSOCIATA O NC ALLORA CERCO FILE DIRETTAMENTE DA FIR BULK
     if do_ocr:
         ocr_list = []
         all_fir = [item.split('.jpg')[0] for item in os.listdir(IMAGE_PATH)]
@@ -1801,47 +1847,48 @@ def check_firlist_tipologia(tipo='', do_ocr=False):
         logger.info('ESEGUO OCR {0} PER TIPOLOGIA {1}'.format(len(ocr_list), tipo.upper()))
 
         return ocr_list
+    return diffdb
 
 
-def check_firlist_tipo_nc():
-    firlist_tipo_nc = [
-        file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['NC']['NAME']))
-    ]
-    firset_from_db = []
-    todo = []
-    diffdb = []
-    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
-    logger.info('FIR ANALIZZATI DA DB {}'.format(db))
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    q = """
-        SELECT file FROM (
-        SELECT * FROM files_WEB_20210702 t1
-        UNION 
-        SELECT * FROM files_WEB_20210708 t1
-        UNION 
-        SELECT * FROM files_WEB_20210711 t1
-        UNION 
-        SELECT * FROM files_WEB_20210714 t1
-        UNION 
-        SELECT * FROM files_WEB_20210715 t1
-        ) AS U
-        where tipologia = '{tipo}'
-        ORDER BY file;
-    """.format(tipo=TIPO_FIR['NC']['NAME'])
-    for item in cur.execute(q).fetchall():
-        firset_from_db.append(item[0])
-    conn.close()
-    for elem in firlist_tipo_nc:
-        if elem not in firset_from_db:
-            todo.append(elem)
-    for elem in firset_from_db:
-        if elem not in firlist_tipo_nc:
-            diffdb.append(elem)
-    logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
-    logger.info('FROM FOLDER NC = {0} FIR'.format(len(firlist_tipo_nc)))
-    logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
-    logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
+# def check_firlist_tipo_nc():
+#     firlist_tipo_nc = [
+#         file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['NC']['NAME']))
+#     ]
+#     firset_from_db = []
+#     todo = []
+#     diffdb = []
+#     db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+#     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
+#     conn = sqlite3.connect(db)
+#     cur = conn.cursor()
+#     q = """
+#         SELECT file FROM (
+#         SELECT * FROM files_WEB_20210702 t1
+#         UNION
+#         SELECT * FROM files_WEB_20210708 t1
+#         UNION
+#         SELECT * FROM files_WEB_20210711 t1
+#         UNION
+#         SELECT * FROM files_WEB_20210714 t1
+#         UNION
+#         SELECT * FROM files_WEB_20210715 t1
+#         ) AS U
+#         where tipologia = '{tipo}'
+#         ORDER BY file;
+#     """.format(tipo=TIPO_FIR['NC']['NAME'])
+#     for item in cur.execute(q).fetchall():
+#         firset_from_db.append(item[0])
+#     conn.close()
+#     for elem in firlist_tipo_nc:
+#         if elem not in firset_from_db:
+#             todo.append(elem)
+#     for elem in firset_from_db:
+#         if elem not in firlist_tipo_nc:
+#             diffdb.append(elem)
+#     logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
+#     logger.info('FROM FOLDER NC = {0} FIR'.format(len(firlist_tipo_nc)))
+#     logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
+#     logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
 
 
 # def read_full_info(info=''):
@@ -1920,17 +1967,11 @@ if __name__ == '__main__':
     # PORTARE I FIR TIPO_A DA NC NELLA PROPRIA CARTELLA CON PROCESSO AUTOMATIZZATO
     # FAI CHECK DB STATIC E QUELLI MODIFICATI CON FUNZIONE CHECK_FIRLIST_TIPO_A()
     # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
-    listfir_todo = check_firlist_tipologia(tipo='tipo_c', do_ocr=True)
+    listfir_todo = check_firlist_tipologia(tipo='NC')
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
-    # listfir_todo = ['101148_445041', '101849_446216', '100661_XRIF_6476_E-DISTRIBUZIONE', '101051_445972_SICON_03',
-    #                 '101636_FIR226581-2020_STENTINELLO_R1_RDR_21018933', '101640_rea_cobat_08-02']
-    # listfir_todo = ['101849_446216', '102085_FIR2266512020', '102150_446286', '102351_RFR935420', '102828_441206',
-    #                 '103027_fe4da75fdf8c18ceecbb326ca44f871a', '103411_FIR2268712020', '103504_446070',
-    #                 '104021_COBAT', '104039_FIR2269932020']
-
     # FAI CHECK TIPOLOGIA FIR - TRS NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    listfir_todo = ['100656_COBAT_FIR0039105-20']#['100513_FIR62655-20', '100656_COBAT_FIR0039105-20']#[item for item in listfir_todo]
+    listfir_todo = [item for item in listfir_todo[:30]]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
@@ -1997,6 +2038,8 @@ if __name__ == '__main__':
                 # logf.write('{}\n'.format(logging.exception('ERROR MESSAGE:')))
                 logf.write("Exception - {0}\n".format(str(e)))
                 logf.close()
+        finally:
+            info.conn.close()
 
     logger.info('{0} FILES PROCESSATI IN {1} SECONDI'.format(len(files), time.time() - start_time))
     logger.info('{0} ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA {0}'.format('!' * 20))
