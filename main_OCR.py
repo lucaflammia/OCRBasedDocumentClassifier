@@ -56,7 +56,7 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
 
 
 class GetFileInfo:
@@ -179,8 +179,7 @@ class GetFileInfo:
             nome_tipologia_to_check = self.cur.execute(q).fetchall()[0][0]
             self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
             if nome_tipologia_to_check == 'NC':
-                self.logger.info('TIPOLOGIA NC INDIVIDUATA PER FILE {} --> '
-                                 'CONSIDERO ESECUZIONE OCR COMPLETA'.format(self.file_only))
+                self.logger.info('TIPOLOGIA NC INDIVIDUATA PER FILE {}'.format(self.file_only))
                 if os.path.exists(os.path.join(PNG_IMAGE_PATH, "NC", self.file_only + '.png')):
                     os.remove(os.path.join(PNG_IMAGE_PATH, 'NC', self.file_only + '.png'))
 
@@ -980,11 +979,10 @@ class GetFileInfo:
         q = """
             INSERT INTO OCR_FIR{dtm} (file,ocr_size, flt,ocr_prod,ocr_trasp,ocr_racc,ts)
                 VALUES ("{file}", "{ocr_size}", "{flt}", "{ocr_prod}", "{ocr_trasp}", "{ocr_racc}", CURRENT_TIMESTAMP)
-            """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
-                       file=self.file_only, ocr_size=data['ocr_size'], flt=self.flt, ocr_prod=data['ocr_prod'],
-                       ocr_trasp=data['ocr_trasp'], ocr_racc=data['ocr_racc'])
+        """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                   file=self.file_only, ocr_size=data['ocr_size'], flt=self.flt, ocr_prod=data['ocr_prod'],
+                   ocr_trasp=data['ocr_trasp'], ocr_racc=data['ocr_racc'])
 
-        self.logger.info(q)
         self.cur.execute(q)
         self.conn.commit()
 
@@ -1613,16 +1611,18 @@ class GetFileInfo:
     def delete_table(self, table='', info_fir=''):
 
         q = """
-            SELECT id FROM {table}
+            SELECT id FROM {table}{dtm}
             WHERE file = "{file}"
-        """.format(table='files_WEB' if self.web else 'files', file=self.file_only)
+        """.format(table='files_WEB' if self.web else 'files',
+                   dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', file=self.file_only)
         curr_id = self.cur.execute(q).fetchall()[0][0]
 
         if table == 'parole_WEB':
             q = """
-                DELETE FROM "{table}"
+                DELETE FROM {table}{dtm}
                 WHERE id_file = "{id_file}"
-            """.format(table='parole_WEB' if self.web else 'parole', id_file=curr_id)
+            """.format(table='parole_WEB' if self.web else 'parole',
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=curr_id)
 
             self.logger.info('ELIMINO RECORDS PRECENDENTI NELLA TABELLA {}'
                              .format('parole_WEB' if self.web else 'parole'))
@@ -1631,9 +1631,10 @@ class GetFileInfo:
 
         elif table == 'ocr':
             q = """
-                DELETE FROM "{table}"
+                DELETE FROM {table}{dtm}
                 WHERE id_file = "{id_file}"
-            """.format(table='OCR_{}'.format(info_fir), id_file=curr_id)
+            """.format(table='OCR_{}'.format(info_fir),
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=curr_id)
 
             self.logger.info('ELIMINO RECORDS NELLA TABELLA {}'.format('OCR_{}'.format(info_fir)))
             self.cur.execute(q)
@@ -1752,7 +1753,7 @@ def check_duplicate_tipo_a():
     return duplicate
 
 
-def check_firlist_tipologia(tipo='', do_ocr=False):
+def check_firlist_tipologia(tipo='', ocr_from_tipologia=False, do_ocr=False):
     firlist_tipologia = [
         file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH,
                                                                   TIPO_FIR['{}'.format(tipo.upper())]['NAME']))
@@ -1828,13 +1829,15 @@ def check_firlist_tipologia(tipo='', do_ocr=False):
         if elem not in from_folder:
             diffdb.append(elem)
     logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
-    logger.info('FROM FOLDER : {}'.format(len(from_folder)))
+    logger.info('FROM FOLDER : {0} {1}'.format(len(from_folder), from_folder[:10]))
     logger.info('FROM FOLDER {0} = {1} FIR DI TIPO {2} TROVATI'
                 .format(tipo.upper(), len(firlist_tipologia), TIPO_FIR['{}'.format(tipo.upper())]['NAME']))
     logger.info('NO OCR RITAGLIO : {}'.format(len(no_ocr_ritaglio)))
     logger.info('FROM FOLDER =  FROM FOLDER {0} - NO OCR RITAGLIO --> {1}'.format(tipo.upper(), len(from_folder)))
     logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
     logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
+    if ocr_from_tipologia:
+        return firlist_tipologia
     # NEL CASO NON ABBIA FIR NELLA CARTELLA ASSOCIATA O NC ALLORA CERCO FILE DIRETTAMENTE DA FIR BULK
     if do_ocr:
         ocr_list = []
@@ -1967,11 +1970,11 @@ if __name__ == '__main__':
     # PORTARE I FIR TIPO_A DA NC NELLA PROPRIA CARTELLA CON PROCESSO AUTOMATIZZATO
     # FAI CHECK DB STATIC E QUELLI MODIFICATI CON FUNZIONE CHECK_FIRLIST_TIPO_A()
     # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
-    listfir_todo = check_firlist_tipologia(tipo='NC')
+    listfir_todo = check_firlist_tipologia(tipo='nc', ocr_from_tipologia=True)
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
-    # FAI CHECK TIPOLOGIA FIR - TRS NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    listfir_todo = [item for item in listfir_todo[:30]]
+    # FAI CHECK TIPOLOGIA (FIR - TRS, NIECO) NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
+    listfir_todo = [item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))

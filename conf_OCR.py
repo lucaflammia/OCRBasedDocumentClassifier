@@ -46,7 +46,7 @@ INFO_FIR = {
             'identificazione', 'imprese', 'arte', 'rifiuto', 'serie', 'detentore', 'registro', 'numero', 'maggio',
             'registro', 'rifiuto', 'identificazione', 'numero', 'serie', 'albo', 'successive', 'modifiche',
             'integrazioni', 'detentore', 'telefono', 'soluzioni', 'conforme', 'tipografia', 'salute', 'tara', 'ragone',
-            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro', 'lario', 'falbo'
+            'bara', 'sino', 'tecnico', 'recale', 'partita', 'sogemont', 'anale', 'entro', 'lario', 'falbo', 'soma'
         ]
     },
     'TRASP': {
@@ -146,7 +146,7 @@ TIPO_D = {
 
 TIPO_G = {
     'TEXT': ["futuro", "sostenibile"],
-    'SIZE_OCR': [0, 550, 2356, 1050],
+    'SIZE_OCR': [800, 250, 2356, 750],
     'NO_WORD': COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'NIECO',
@@ -221,7 +221,10 @@ COMMON_FIR_INFO = {
     'TIPO_C': ['srl', 'cavagna', 'toscanini', 'renato', 'caorso', '43010', 'fontevivo', 'pontetaro',
                '29012', 'maggio', '01103640338', 'ecologia', 'autoservice', 'melissano', 'pontenure', '29010'
                ],
-    'TIPO_D': ['autoservice', 'guglielmo', 'nuzzo']
+    'TIPO_D': ['autoservice', 'guglielmo', 'nuzzo'],
+    'TIPO_E': [],
+    'TIPO_F': [],
+    'TIPO_G': []
 }
 
 
