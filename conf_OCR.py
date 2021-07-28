@@ -5,8 +5,9 @@ from datetime import datetime
 now = datetime.now()
 date_time = now.strftime("%Y-%m-%d %H-%M-%S")
 
-BASEPATH = os.path.abspath(".")
-PRED_PATH = os.path.abspath("..")
+BASEPATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
+                           "\\OCR_development\\NEW_OCR")
+PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
 DB_PATH = os.path.join(PRED_PATH, 'DEMO_APP', 'WEB_APP')
 DB_BACKUP_PATH = os.path.join(BASEPATH, 'DB_BACKUP')
 DB_STATIC_PATH = os.path.join(PRED_PATH, 'DB_STATIC')
@@ -60,7 +61,7 @@ INFO_FIR = {
                     'unita', 'denominazione', 'luogo', 'indirizzo']
     },
     'RACC': {
-        'TEXT': 'DESTINATARIO',
+        'TEXT': 'RACCOGLITORE',
         'TABLE': 'RACCOGLITORI',
         'BTWN_WORD': {
             'INIZ': ['destinatario'],
@@ -80,7 +81,7 @@ TIPO_A = {
     'NO_WORD': [("identificazione", "1-4"), ("mondoservizi", "1-4"),
                 ('systems', '1-4'), ('balvano', '1-4'), ("ecologiche", "1-4"),
                 ("itrofer", "1-4"), ("circolare", "1-4"), ('rosignano', '1-4'),
-                ('morelline', '1-4'),] + COMMON_NO_WORD,
+                ('morelline', '1-4')] + COMMON_NO_WORD,
     'DLT_ID': 25,
     'NAME': 'FORMULARIO RIFIUTI - ALLEGATO B - ETM',
     'FILES': []

@@ -56,10 +56,10 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
-class GetFileInfo:
+class GetFirOCR:
     def __init__(self, file='', logger='', web=True):
         self.file = file
         self.db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
@@ -81,6 +81,8 @@ class GetFileInfo:
         self.produttore = 'NOT FOUND'
         self.trasportatore = 'NOT FOUND'
         self.raccoglitore = 'NOT FOUND'
+        self.cod_rifiuto = 'INFORMAZIONE NON FORNITA'
+        self.peso_riscontrato = 'INFORMAZIONE NON FORNITA'
         self.ocr_fir = {}
         self.full_info = {}
 
@@ -134,49 +136,28 @@ class GetFileInfo:
             if os.path.exists(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png')):
                 os.remove(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png'))
 
-    def get_full_info(self, full_info=''):
-
-        id_fir = self.file_only.split('_')[0]
-
-        q = """
-            SELECT * FROM {table}
-            WHERE id_fir = '{id_fir}'
-        """.format(table='INFO_{}'.format(full_info), id_fir=id_fir)
-
-        item = [row for row in self.cur.execute(q).fetchall()[0]]
-        full_info_dict = {
-            'id': item[0],
-            'id_fir': item[1],
-            'a_rag_soc_prod': item[2],
-            'a_prov_prod': item[3],
-            'a_comune_prod': item[4],
-            'a_via_prod': item[5],
-            'a_cap_prod': item[6]
-        }
-
-        return full_info_dict
 
     def check_from_old_db(self):
         # CASO RICERCA DI FALSI POSITIVI DI UNA TIPOLOGIA INIZIALMENTE INDIVIDUATA
         # SE TROVATI ALLORA EVITO ANALISI OCR
         # CONSIDERA IL DB TOTALE E VERIFICA INFO FIR PREGRESSE
         img = self.open_fir()
+        self.fir_properties()
         dtms = ['20210702', '20210708', '20210711', '20210714', '20210715']
         for kk, dtm in enumerate(dtms):
-            logger.info('FIR CERCATO NEL DB {0}'.format(dtm))
             q = """
                 SELECT tipologia FROM files_WEB_{dtm}
                 where file = '{file}';
             """.format(dtm=dtm, file=self.file_only)
             res = self.cur.execute(q).fetchall()
             if (not kk == len(dtms) - 1) and (not res):
-                self.logger.info('FILE {0} NON TROVATO NEL DB {1}'.format(self.file_only, self.db))
                 continue
             elif (kk == len(dtms) - 1) and (not res):
-                self.logger.info('FILE {0} NON PRESENTE NEI DB PASSATI'.format(self.file_only))
+                self.logger.info('FILE {0} NON ANALIZZATO IN PASSATO'.format(self.file_only))
                 return self.ocr_fir
 
             nome_tipologia_to_check = self.cur.execute(q).fetchall()[0][0]
+            logger.info('FILE ANALIZZATO IN PASSATO E PRESENTE IN DB')
             self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
             if nome_tipologia_to_check == 'NC':
                 self.logger.info('TIPOLOGIA NC INDIVIDUATA PER FILE {}'.format(self.file_only))
@@ -213,16 +194,17 @@ class GetFileInfo:
                 continue
             TIPO_FIR[self.tipologia]['FILES'].append(self.file_only)
             # INSERISCO MODIFICHE NEL DB ODIERNO PER DOUBLE CHECK
-            db_now = os.path.join(DB_PATH, 'OCR_MT.db')
-            conn = sqlite3.connect(db_now)
-            cur = conn.cursor()
-            q = """
-                INSERT INTO files_WEB (file,tipologia,produttore,trasportatore,raccoglitore,ts) VALUES 
-                ('{file}','{tipol}','','','', CURRENT_TIMESTAMP );
-            """.format(file=self.file_only, tipol=self.nome_tipologia)
-            cur.execute(q)
-            conn.commit()
-            conn.close()
+            # db_now = os.path.join(DB_PATH, 'OCR_MT.db')
+            # self.logger.info('DB NOW {}'.format(db_now))
+            # conn = sqlite3.connect(db_now)
+            # cur = conn.cursor()
+            # q = """
+            #     INSERT INTO files_WEB (file,tipologia,produttore,trasportatore,raccoglitore,ts) VALUES
+            #     ('{file}','{tipol}','','','', CURRENT_TIMESTAMP );
+            # """.format(file=self.file_only, tipol=self.nome_tipologia)
+            # cur.execute(q)
+            # conn.commit()
+            # conn.close()
             if not nome_tipologia_to_check == self.nome_tipologia:
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA "NUOVA TIPOLOGIA"
                 # E LO RIMUOVO DA QUELLA VECCHIA
@@ -272,8 +254,6 @@ class GetFileInfo:
                 self.save_move_delete_png(delete_from_folder=nome_tipologia_to_check)
                 self.logger.info('FILE {0} NON CONFERMATO PER {1} E NON IDENTIFICATO A NUOVA TIPOLOGIA'
                                  .format(self.file_only, nome_tipologia_to_check))
-                self.logger.info('FILE {0} AGGIORNATO DA TIPOLOGIA {1} A NC'
-                                 .format(self.file_only, nome_tipologia_to_check))
 
         return self.ocr_fir
 
@@ -289,13 +269,27 @@ class GetFileInfo:
 
         return img
 
-    def find_info(self):
+    def fir_properties(self):
+        self.logger.info('INFO ESATTE CERCATE NEL DB PER FILE {}'.format(self.file_only))
+        self.produttore = self.get_exact_info(info='prod')
+        self.logger.info('{0} PRODUTTORE : {1} {0}'.format('+' * 20, self.produttore))
+        self.trasportatore = self.get_exact_info(info='trasp')
+        self.logger.info('{0} TRASPORTATORE : {1} {0}'.format('+' * 20, self.trasportatore))
+        self.raccoglitore = self.get_exact_info(info='racc')
+        self.logger.info('{0} DESTINATARIO : {1} {0}'.format('+' * 20, self.raccoglitore))
+        self.get_exact_info(info='FIR')
+        self.logger.info('{0} COD RIFIUTO : {1} {0}'.format('+' * 20, self.cod_rifiuto))
+        self.logger.info('{0} PESO RISCONTRATO : {1} {0}'.format('+' * 20, self.peso_riscontrato))
+
+    def perform_ocr_fir(self):
         word_like = {}
 
         img = self.open_fir()
 
-        self.logger.info('{0} RICERCA INFO PER FILE : {1} {0}'.format('+' * 20, self.file_only))
+        self.logger.info('{0} ESECUZIONE OCR PER FILE : {1} {0}'.format('+' * 20, self.file_only))
         self.logger.info('SIZE IMMAGINE : {0} w - {1} h'.format(self.width, self.height))
+
+        self.fir_properties()
 
         # CREA NUOVO DB PER NUOVI FIR ESEGUENDO OCR COMPLETO
         # OPPURE FACCIO OCR RITAGLIO NEL CASO DI FIR GIA' ANALIZZATO
@@ -388,14 +382,15 @@ class GetFileInfo:
         res = self.check_file(table='OCR_FIR')
         # INSERISCO PAROLE DA ACCETTARE QUALORA VENISSERO INDIVIDUATE DURANTE OCR
         # self.insert_common_words(info_fir='PRODUTTORE')
-        # self.get_full_info(full_info='PRODUTTORE')
-        self.full_info = self.read_full_info(info='PRODUTTORI')
+        # self.read_full_info_from_csv(info='FIR')
         if res:
-            self.logger.info("INFO GIA' ACQUISITE. ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
+            self.logger.info("PAROLE DETERMINATE DA OCR GIA' ACQUISITE")
+            self.logger.info("ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
             return self.ocr_fir
         # IN CASO DI TIPOLOGIA TROVATA E NON ANALIZZATA, SI CERCANO LE INFO
         for inf in ['prod', 'trasp', 'racc']:
-            self.get_info_fir(inf)
+            self.full_info = self.read_full_info_from_csv(info=INFO_FIR[inf.upper()]['TABLE'])
+            self.get_ocr_info(inf)
             break
 
         return self.ocr_fir
@@ -479,9 +474,8 @@ class GetFileInfo:
                 sres = self.cur.execute(subq).fetchall()
 
                 if not sres:
-                    self.logger.info(
-                        "Nessun risultato idoneo per la parola {0}. "
-                        "Il file {1} non appartiene alla tipologia {2}".format(txt, self.file_only, tipo))
+                    self.logger.info("NESSUN RISULTATO IDONEO PER LA PAROLA '{0}'".format(txt))
+                    self.logger.info("FILE {0} NON APPARTENENTE ALLA TIPOLOGIA {1}".format(self.file_only, tipo))
                     return
 
                 pid = sres[0][0]
@@ -490,7 +484,7 @@ class GetFileInfo:
                     # RICERCA FALSI POSITIVI. SE HO UN RISCONTRO ESCLUDO LA TIPOLOGIA
                     nwres = self.esclusione_parole_tipologia(tipo, word_like, pid)
                     if nwres:
-                        self.logger.info('Trovata parola che esclude il file {0} dalla tipologia {1}'
+                        self.logger.info('TROVATA PAROLA CHE ESCLUDE IL FILE {0} DALLA TIPOLOGIA {1}'
                                          .format(self.file_only, tipo))
                         return
 
@@ -523,9 +517,8 @@ class GetFileInfo:
                 occ_l.append(len(res))
 
                 if occ_l == [0 * i for i in range(len(occ_l))]:
-                    self.logger.info("Nessun risultato idoneo per la parola {0}. "
-                                     "Il file {1} non appartiene alla tipologia {2}"
-                                     .format(txt, self.file_only, tipo))
+                    self.logger.info("NESSUN RISULTATO IDONEO PER LA PAROLA '{0}'".format(txt))
+                    self.logger.info("FILE {0} NON APPARTENENTE ALLA TIPOLOGIA {1}".format(self.file_only, tipo))
                     return
 
                 self.tipologia = tipo
@@ -578,12 +571,25 @@ class GetFileInfo:
         # PER INFO PYTESSERACT
         # https://jaafarbenabderrazak-info.medium.com/ocr-with-tesseract-opencv-and-python-d2c4ec097866
         # BEST PRACTICES https://ai-facets.org/tesseract-ocr-best-practices/
-        orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
+
+        # SE FILE CARICATO DA WEB_APP ALLORA LO COPIO NELLA DIRECTORY NEW_OCR/IMAGES
+        try:
+            orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
+            img = Image.open(orig_filepath)
+        except Exception:
+            self.logger.info('FILE CARICATO DA WEB_APP E NON PRESENTE IN {}'.format(os.path.abspath(PNG_IMAGE_PATH)))
+            self.logger.info('UTILIZZO FIR PRESENTE NELLA DIRECTORY {} PER FORNIRE COPIA NELLA DIRECTORY'
+                             .format(os.path.join(PRED_PATH, 'Demo_APP', 'WEB_APP', 'images')))
+            orig_filepath = os.path.join(PRED_PATH, 'Demo_APP', 'WEB_APP', 'images', '{0}.png'.format(self.file_only))
+            img = Image.open(orig_filepath)
+            img_copy = img.copy()
+            img_copy.save(os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only)), 'png')
+            img_copy.close()
+
         # SE HO FILENAME MODIFICATO CON "_rot" ALLORA CONSIDERO IL FILE ORIGINALE SENZA QUESTA DICITURA
         # PER EFFETTUARE IL RITAGLIO
         # if self.rotated_file:
         #     orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
-        img = Image.open(orig_filepath)
         left = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][0]
         top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
         bottom = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][3]
@@ -665,7 +671,7 @@ class GetFileInfo:
                     t = t.lower()
                     data.get(info_fir).append(t)
 
-        self.logger.info('data {}'.format(data))
+        self.logger.info('DATA {}'.format(data))
         self.logger.info('{0} {1} RECORDS TROVATI {0}'.format('-' * 20, len(data.get(info_fir))))
 
         if not data.get(info_fir):
@@ -1110,7 +1116,7 @@ class GetFileInfo:
         self.logger.info('PAROLE CHIAVE ACCETTATE CHE DELIMITANO INFO {}'.format(delim_words_ok))
         return delim_words_ok
 
-    def get_info_fir(self, info):
+    def get_ocr_info(self, info):
         id_coor = {}
 
         # CERCO TRA PAROLA INIZIALE E FINALE PER RICERCA INTERNA DELLA INFO CERCATA
@@ -1285,42 +1291,55 @@ class GetFileInfo:
             self.logger.info('INSERIMENTO IN TABELLA OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']))
             self.insert_info_db(self.ocr_fir)
 
-    def check_ocr_files(self, info_ocr=None):
-        q = """
-            SELECT DISTINCT file 
-            FROM "{table}"
-        """.format(table='files_WEB' if self.web else 'files')
+            # SE LUNGHEZZA SET PAROLE TROVATE NEL RITAGLIO OCR MAGGIORE > 2 ALLORA CERCO INFO ASSOCIATA CON QUERY
+            # for item in ['prod', 'trasp', 'dest']:
+            #     if len(self.ocr_fir['ocr_{}'.format(item)][0]) > 2 :
+            #         q = """
+            #             SELECT a_rag_soc_prod
+            #             FROM {table}
+            #             WHERE id_fir = '{file}'
+            #         """.format(table='INFO_{}'.format(INFO_FIR[item]['TABLE']), file=self.file_only.split('_')[0])
+            #         rag_soc = self.cur.execute(q).fetchall()[0][0]
+            #         self.produttore = rag_soc
 
-        files_lst = []
-        for row in self.cur.execute(q).fetchall():
-            files_lst.append(row[0])
+    # def check_ocr_files(self, info_ocr=None):
+    #     q = """
+    #         SELECT DISTINCT file
+    #         FROM "{table}"
+    #     """.format(table='files_WEB' if self.web else 'files')
+    #
+    #     files_lst = []
+    #     for row in self.cur.execute(q).fetchall():
+    #         files_lst.append(row[0])
+    #
+    #     tot_files = "'" + "','".join(files_lst) + "'"
+    #
+    #     q = """
+    #         SELECT DISTINCT file
+    #         FROM "{table}"
+    #         WHERE file in ({tot_files})
+    #     """.format(table='OCR_FIR', tot_files=tot_files)
+    #
+    #     ocr_files_lst = []
+    #     for row in self.cur.execute(q).fetchall():
+    #         ocr_files_lst.append(row[0])
+    #
+    #     self.logger.info('{0} {1} FILES ANALIZZATI PER OCR {2} {0}'
+    #                      .format('+' * 20, len(ocr_files_lst), INFO_FIR[info_ocr.upper()]['TEXT']))
+    #
+    #     tot_missed_ocr = len(files_lst) - len(ocr_files_lst)
+    #     if not (tot_missed_ocr == 0):
+    #         self.logger.info('{0} {1} FILES MANCANTI PER OCR {2} {0}'
+    #                          .format('!' * 20, tot_missed_ocr, INFO_FIR[info_ocr.upper()]['TEXT']))
+    #         missed_ocr = set(files_lst) - set(ocr_files_lst)
+    #         self.logger.info('OCR MANCANTE PER I SEGUENTI FILES: {}'.format(missed_ocr))
 
-        tot_files = "'" + "','".join(files_lst) + "'"
-
-        q = """
-            SELECT DISTINCT file 
-            FROM "{table}"
-            WHERE file in ({tot_files})
-        """.format(table='OCR_FIR', tot_files=tot_files)
-
-        ocr_files_lst = []
-        for row in self.cur.execute(q).fetchall():
-            ocr_files_lst.append(row[0])
-
-        self.logger.info('{0} {1} FILES ANALIZZATI PER OCR {2} {0}'
-                         .format('+' * 20, len(ocr_files_lst), INFO_FIR[info_ocr.upper()]['TEXT']))
-
-        tot_missed_ocr = len(files_lst) - len(ocr_files_lst)
-        if not (tot_missed_ocr == 0):
-            self.logger.info('{0} {1} FILES MANCANTI PER OCR {2} {0}'
-                             .format('!' * 20, tot_missed_ocr, INFO_FIR[info_ocr.upper()]['TEXT']))
-            missed_ocr = set(files_lst) - set(ocr_files_lst)
-            self.logger.info('OCR MANCANTE PER I SEGUENTI FILES: {}'.format(missed_ocr))
-
-    def read_full_info(self, info=''):
+    def read_full_info_from_csv(self, info='',):
         full_info_dict = {
-            'PRODUTTORI': {
-            }
+            'FIR': {},
+            'PRODUTTORI': {},
+            'TRASPORTATORI': {},
+            'DESTINATARI': {}
         }
         stopwords = []
         with open(os.path.join(PRED_PATH, 'stopwords.txt'), 'r', encoding='utf-8') as f:
@@ -1329,17 +1348,19 @@ class GetFileInfo:
                 stopwords.append(t.replace('\n', ''))
             f.close()
 
-        if not os.path.exists(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv")):
+        if not os.path.exists(os.path.join(PRED_PATH, "FULL_INFO_{}.csv".format(info))):
             df = pd.read_csv(os.path.join(PRED_PATH, "INFO_DB_FULL.csv"), encoding='utf-8',
                              error_bad_lines=False, skiprows=1, sep=';')
             logger.info('INDEXES = {}'.format(df.columns))
         else:
-            df = pd.read_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"), encoding='utf-8',
+            df = pd.read_csv(os.path.join(PRED_PATH, "FULL_INFO_{}.csv".format(info)), encoding='utf-8',
                              error_bad_lines=False, sep=',')
 
-        if info == 'PRODUTTORI':
-            for col in ['a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']:
-                if col == 'a_cap_prod':
+        if info == 'FIR':
+            columns = ['id_ordine', 'c_cod_rifiuto', 'd_peso_riscontrato',
+                       'b_data_emissione_fir']
+            for col in columns:
+                if col == 'id_ordine':
                     df[col] = df[col].fillna(0)
                     df[col] = df[col].astype(int)
                     continue
@@ -1348,6 +1369,29 @@ class GetFileInfo:
                 # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
             data_prod = {
                 'id_fir': df['id_fir'].to_numpy(),
+                'id_ordine': df['id_ordine'].to_numpy(),
+                'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
+                'd_peso_riscontrato': df['d_peso_riscontrato'].to_numpy(),
+                'b_data_emissione_fir': df['b_data_emissione_fir'].to_numpy()
+            }
+            df_prod = pd.DataFrame(data=data_prod)
+            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_FIR.csv"))
+            return None
+
+        if info == 'PRODUTTORI':
+            columns = ['c_cod_rifiuto', 'a_piva_prod', 'a_prov_prod', 'a_comune_prod', 'a_via_prod', 'a_cap_prod']
+            for col in columns:
+                if col in ('a_cap_prod'):
+                    df[col] = df[col].fillna(0)
+                    df[col] = df[col].astype(int)
+                    continue
+                df[col] = df[col].fillna('')
+                df[col] = df[col].astype(str)
+                # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
+            data_prod = {
+                'id_fir': df['id_fir'].to_numpy(),
+                'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
+                'a_piva_prod': df['a_piva_prod'].to_numpy(),
                 'a_rag_soc_prod': df['a_rag_soc_prod'].to_numpy(),
                 'a_prov_prod': df['a_prov_prod'].to_numpy(),
                 'a_comune_prod': df['a_comune_prod'].to_numpy(),
@@ -1355,7 +1399,7 @@ class GetFileInfo:
                 'a_cap_prod': df['a_cap_prod'].to_numpy()
             }
             df_prod = pd.DataFrame(data=data_prod)
-            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv"))
+            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORI.csv"))
 
             prod_dict = {}
             for col in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
@@ -1375,37 +1419,127 @@ class GetFileInfo:
                 prod_dict[col] = sorted(foo)
                 # logger.info('{0} : {1} - {2}'.format(col, prod_dict[col][-30:-1], len(prod_dict[col])))
                 full_info_dict[info][col] = prod_dict[col]
+                return full_info_dict
 
-        return full_info_dict
+        if info == 'TRASPORTATORI':
+            columns = ['c_cod_rifiuto', 'a_piva_trasp', 'a_prov_trasp', 'a_comune_trasp', 'a_via_trasp',
+                       'a_cap_trasp']
+            for col in columns:
+                if col in ('a_cap_trasp'):
+                    df[col] = df[col].fillna(0)
+                    df[col] = df[col].astype(int)
+                    continue
+                df[col] = df[col].fillna('')
+                df[col] = df[col].astype(str)
+                # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
+            data_trasp = {
+                'id_fir': df['id_fir'].to_numpy(),
+                'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
+                'a_piva_trasp': df['a_piva_trasp'].to_numpy(),
+                'a_rag_soc_trasp': df['a_rag_soc_trasp'].to_numpy(),
+                'a_prov_trasp': df['a_prov_trasp'].to_numpy(),
+                'a_comune_trasp': df['a_comune_trasp'].to_numpy(),
+                'a_via_trasp': df['a_via_trasp'].to_numpy(),
+                'a_cap_trasp': df['a_cap_trasp'].to_numpy()
+            }
+            df_trasp = pd.DataFrame(data=data_trasp)
+            df_trasp.to_csv(os.path.join(PRED_PATH, "FULL_INFO_TRASPORTATORI.csv"))
 
-    # def check_common_word(self, com_words, tipol):
-    #     words = "'" + "','".join(com_words) + "'"
-    #     q = """
-    #         SELECT parola
-    #         FROM COMMON_WORDS
-    #         WHERE
-    #         parola in ({words}) AND
-    #         tipologia = '{tipologia}'
-    #     """.format(words=words, tipologia=tipol)
-    #     res = self.cur.execute(q).fetchall()
-    #     return res
-    #
-    # def insert_common_words(self, info_fir=''):
-    #     com_words = COMMON_FIR_INFO[self.tipologia]
-    #     res = self.check_common_word(com_words, self.nome_tipologia)
-    #     word_lst = []
-    #     if res:
-    #         for row in res:
-    #             word_lst.append(row[0])
-    #     word_insert = list(set(com_words) - set(word_lst))
-    #     for com_word in word_insert:
-    #         q = """
-    #             INSERT INTO COMMON_WORDS(parola,tipologia,info,ts)
-    #                     VALUES ("{com_word}","{tipologia}", "{info}", CURRENT_TIMESTAMP)
-    #         """.format(com_word=com_word, tipologia=TIPO_FIR[self.tipologia]['NAME'], info=info_fir)
-    #
-    #         self.cur.execute(q)
-    #         self.conn.commit()
+            trasp_dict = {}
+            for col in ['a_rag_soc_trasp', 'a_comune_trasp', 'a_via_trasp']:
+                df_trasp[col] = df_trasp[col].apply(lambda cl: cl.lower())
+                val_lst = df_trasp[col].values
+                words_prod = set()
+                for txt in val_lst:
+                    # logger.info(txt)
+                    words_lst = [re.sub('\W', '', p) for p in word_tokenize(txt) if p not in stopwords
+                                 and p not in string.punctuation and not re.search('\d', p)
+                                 and not (len(p) <= 2 and re.search('\W', p))]
+                    # logger.info(words_lst)
+                    words_prod.update(words_lst)
+
+                val_set = set(parola for parola in words_prod)
+                foo = [el for el in val_set]
+                trasp_dict[col] = sorted(foo)
+                # logger.info('{0} : {1} - {2}'.format(col, trasp_dict[col][-30:-1], len(trasp_dict[col])))
+                full_info_dict[info][col] = trasp_dict[col]
+                return full_info_dict
+
+        if info == 'DESTINATARI':
+            columns = ['c_cod_rifiuto', 'a_piva_destinatario_fir', 'a_prov_destinatario_fir',
+                       'a_comune_destinatario_fir', 'a_via_destinatario_fir', 'a_cap_destinatario_fir']
+            for col in columns:
+                if col in ('a_cap_destinatario_fir'):
+                    df[col] = df[col].fillna(0)
+                    df[col] = df[col].astype(int)
+                    continue
+                df[col] = df[col].fillna('')
+                df[col] = df[col].astype(str)
+                # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
+            data_racc = {
+                'id_fir': df['id_fir'].to_numpy(),
+                'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
+                'a_piva_destinatario_fir': df['a_piva_destinatario_fir'].to_numpy(),
+                'a_rag_soc_destinatario_fir': df['a_rag_soc_destinatario_fir'].to_numpy(),
+                'a_prov_destinatario_fir': df['a_prov_destinatario_fir'].to_numpy(),
+                'a_comune_destinatario_fir': df['a_comune_destinatario_fir'].to_numpy(),
+                'a_via_destinatario_fir': df['a_via_destinatario_fir'].to_numpy(),
+                'a_cap_destinatario_fir': df['a_cap_destinatario_fir'].to_numpy()
+            }
+            df_racc = pd.DataFrame(data=data_racc)
+            df_racc.to_csv(os.path.join(PRED_PATH, "FULL_INFO_DESTINATARI.csv"))
+
+            racc_dict = {}
+            for col in ['a_rag_soc_destinatario_fir', 'a_comune_destinatario_fir', 'a_via_destinatario_fir']:
+                df_racc[col] = df_racc[col].apply(lambda cl: cl.lower())
+                val_lst = df_racc[col].values
+                words_prod = set()
+                for txt in val_lst:
+                    # logger.info(txt)
+                    words_lst = [re.sub('\W', '', p) for p in word_tokenize(txt) if p not in stopwords
+                                 and p not in string.punctuation and not re.search('\d', p)
+                                 and not (len(p) <= 2 and re.search('\W', p))]
+                    # logger.info(words_lst)
+                    words_prod.update(words_lst)
+
+                val_set = set(parola for parola in words_prod)
+                foo = [el for el in val_set]
+                racc_dict[col] = sorted(foo)
+                # logger.info('{0} : {1} - {2}'.format(col, racc_dict[col][-30:-1], len(racc_dict[col])))
+                full_info_dict[info][col] = racc_dict[col]
+
+                return full_info_dict
+
+    def get_exact_info(self, info):
+        if not info == 'FIR':
+            if info == 'racc':
+                rag = 'a_rag_soc_destinatario_fir'
+            else:
+                rag = 'a_rag_soc_{}'.format(info)
+            q = """
+                SELECT {rag}
+                FROM {table}
+                WHERE id_fir = '{file}'
+            """.format(rag=rag, table='INFO_{}'.format(INFO_FIR[info.upper()]['TEXT']),
+                       file=self.file_only.split('_')[0])
+            if self.cur.execute(q).fetchall():
+                info_rag_soc = self.cur.execute(q).fetchall()[0][0]
+            else:
+                info_rag_soc = 'INFORMAZIONE NON FORNITA'
+
+            return info_rag_soc
+        else:
+            q = """
+                SELECT c_cod_rifiuto, d_peso_riscontrato
+                FROM INFO_FIR
+                WHERE id_fir = '{file}'
+            """.format(file=self.file_only.split('_')[0])
+            if self.cur.execute(q).fetchall():
+                self.cod_rifiuto = self.cur.execute(q).fetchall()[0][0]
+                self.peso_riscontrato = self.cur.execute(q).fetchall()[0][1]
+            else:
+                self.logger.info('INFORMAZIONE PER FILE {} NON FORNITA DAL DB'.format(self.file_only))
+
 
     def check_ritaglio(self, delim_words, info):
         idx = []
@@ -1640,45 +1774,10 @@ class GetFileInfo:
             self.cur.execute(q)
             self.conn.commit()
 
-    def crea_training_set(self, ocr_files, info_fir):
-        """
-        Metodo che ritorna una tupla di due valori:
-            - l'array degli input (train_x)
-            - l'array degli output (train_y)
-
-        I due array hanno lungezza fissa:
-         - len(train_x) == len(temi)
-         - len(train_y) == len(info_fir)
-        """
-        training = []
-        output_vuota = [0] * len(info_fir)
-        info_fir = list(info_fir)
-
-        for parole, file in ocr_files:
-            temi_descrizione = [parola for parola in parole]
-
-            # riempio la lista di input
-            riga_input = [1 if t in temi_descrizione else 0 for t in temi]
-
-            # riempio la lista di output
-            riga_output = output_vuota[:]
-            riga_output[info_fir.index(categoria)] = 1
-
-            training.append([riga_input, riga_output])
-
-        # mischio il mazzo
-        random.shuffle(training)
-        # trasformo in un array
-        training = np.array(training)
-
-        # e creo il training set
-        train_x = list(training[:, 0])
-        train_y = list(training[:, 1])
-        return train_x, train_y
-
 
 def underscore_split(file):
-    if file.count("_") >= 2:
+    occ = file.count("_")
+    if occ >= 2:
         file = "_".join(file.split("_", 2)[:2])
 
     if re.search('\W', file):
@@ -1691,16 +1790,16 @@ def process_image(curr_file):
     filepath = os.path.join(IMAGE_PATH, curr_file)
     newfilepath = os.path.join(PNG_IMAGE_PATH, curr_file)
     try:
-        logger.info('CERCO FILE {0}.png IN {1}'.format(curr_file, PNG_IMAGE_PATH))
+        logger.info('INIZIALMENTE VERIFICO SE FILE {0}.png ESISTE IN {1}'.format(curr_file, PNG_IMAGE_PATH))
         img = Image.open(newfilepath + '.png')
     except FileNotFoundError:
         # ACCETTO DIVERSI FORMATI DI IMMAGINE DA CONVERTIRE IN PDF (PER AUMENTARE DPI)
         for ext in ['jpg', 'jpeg', 'tiff']:
             try:
-                logger.info("Cerco file {0} in formato {1}".format(curr_file, ext))
+                logger.info("CERCO FILE {0} IN FORMATO {1}".format(curr_file, ext))
                 img = Image.open(filepath + '.' + ext)
             except FileNotFoundError:
-                logger.info("Formato immagine {0} per file {1} non trovato".format(ext, curr_file))
+                logger.info("FORMATO IMMAGINE {0} PER FILE {1} NON TROVATO".format(ext, curr_file))
                 continue
 
             img.save(filepath + '.pdf')
@@ -1708,7 +1807,7 @@ def process_image(curr_file):
             break
 
         # CONVERTO IN PNG (NECESSARIO PER OCR)
-        logger.info("Salvataggio file {0} in formato png su {1}".format(curr_file, PNG_IMAGE_PATH))
+        logger.info("SALVATAGGIO FILE {0} IN FORMATO PNG SU {1}".format(curr_file, PNG_IMAGE_PATH))
         pages = convert_from_path(filepath + '.pdf', DPI)
         for page in pages:
             page.save('{0}.png'.format(newfilepath), 'png')
@@ -1847,117 +1946,10 @@ def check_firlist_tipologia(tipo='', ocr_from_tipologia=False, do_ocr=False):
             if elem_rid in firset_from_db_bulk:
                 ocr_list.append(elem)
 
-        logger.info('ESEGUO OCR {0} PER TIPOLOGIA {1}'.format(len(ocr_list), tipo.upper()))
+        logger.info('ESEGUO {0} OCR PER TIPOLOGIA {1}'.format(len(ocr_list), tipo.upper()))
 
         return ocr_list
     return diffdb
-
-
-# def check_firlist_tipo_nc():
-#     firlist_tipo_nc = [
-#         file.split('.png')[0] for file in os.listdir(os.path.join(PNG_IMAGE_PATH, TIPO_FIR['NC']['NAME']))
-#     ]
-#     firset_from_db = []
-#     todo = []
-#     diffdb = []
-#     db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
-#     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
-#     conn = sqlite3.connect(db)
-#     cur = conn.cursor()
-#     q = """
-#         SELECT file FROM (
-#         SELECT * FROM files_WEB_20210702 t1
-#         UNION
-#         SELECT * FROM files_WEB_20210708 t1
-#         UNION
-#         SELECT * FROM files_WEB_20210711 t1
-#         UNION
-#         SELECT * FROM files_WEB_20210714 t1
-#         UNION
-#         SELECT * FROM files_WEB_20210715 t1
-#         ) AS U
-#         where tipologia = '{tipo}'
-#         ORDER BY file;
-#     """.format(tipo=TIPO_FIR['NC']['NAME'])
-#     for item in cur.execute(q).fetchall():
-#         firset_from_db.append(item[0])
-#     conn.close()
-#     for elem in firlist_tipo_nc:
-#         if elem not in firset_from_db:
-#             todo.append(elem)
-#     for elem in firset_from_db:
-#         if elem not in firlist_tipo_nc:
-#             diffdb.append(elem)
-#     logger.info('FIRSET FROM DB : {}'.format(len(firset_from_db)))
-#     logger.info('FROM FOLDER NC = {0} FIR'.format(len(firlist_tipo_nc)))
-#     logger.info('FIR TODO = FROM FOLDER - FIRSET FROM DB : {0} --> {1}'.format(len(todo), todo))
-#     logger.info('FIR DIFFDB = FIRSET FROM DB - FROM FOLDER : {0} --> {1}'.format(len(diffdb), diffdb))
-
-
-# def read_full_info(info=''):
-#     full_info = {
-#         'PRODUTTORI': {
-#             'a_rag_soc_prod': [],
-#             'a_comune_prod': [],
-#             'a_via_prod': []
-#         }
-#     }
-#     if info == 'PRODUTTORI':
-#         with open(os.path.join(PRED_PATH, 'SORTED_INFO_PROD.txt'), 'r') as f:
-#             foo = f.read()
-#             f.close()
-#
-#         logger.info(foo)
-#         quit()
-#
-#         for item in ['a_rag_soc_prod', 'a_comune_prod', 'a_via_prod']:
-#             flag = False
-#             for elem in foo:
-#                 start_info = elem.startswith('{0} {1} {0}'.format('-'*20, item))
-#                 end_info = elem.startswith('{0} END {1} {0}'.format('-'*20, item))
-#                 if start_info or flag is True:
-#                     elem = re.sub("[\[\]\n]", "", elem)
-#                     if elem and not (start_info or end_info):
-#                         full_info[info][item].append(elem)
-#                     flag = True
-#                     if end_info:
-#                         break
-#             logger.info(len(full_info[info][item][0]))
-#
-#     return full_info
-    # with open (os.path.join(PRED_PATH, "FULL_INFO_PRODUTTORE.csv")) as f:
-    #     for t in f.readlines():
-    #         logger.info(t)
-    #         break
-    #
-    # tb_INFO_prod = """
-    #     CREATE TABLE if not exists INFO_PRODUTTORE
-    #     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #     id_fir VARCHAR(1024) NOT NULL,
-    #     a_rag_soc_prod VARCHAR(1024) NOT NULL,
-    #     a_prov_prod VARCHAR(1024) NOT NULL,
-    #     a_comune_prod VARCHAR(1024) NOT NULL,
-    #     a_via_prod VARCHAR(1024) NOT NULL,
-    #     a_cap_prod INTEGER NOT NULL);
-    # """
-    #
-    # conn = sqlite3.connect(os.path.join(DB_PATH, 'OCR_MT.db'))
-    # cur = conn.cursor()
-    # cur.execute(tb_INFO_prod)
-    #
-    # for row in df_prod.itertuples():
-    #     q = """
-    #         INSERT INTO INFO_PRODUTTORE(id_fir, a_rag_soc_prod, a_prov_prod, a_comune_prod, a_via_prod, a_cap_prod)
-    #         VALUES ("{0}","{1}","{2}","{3}","{4}","{5}")
-    #     """.format(row[0], row[1], row[2], row[3], row[4], row[5])
-    #     cur.execute(q)
-    # conn.commit()
-    #
-    #
-    # q = """
-    #     SELECT * FROM {table}
-    #     ORDER BY id_fir ASC
-    # """.format(table='INFO_PRODUTTORI')
 
 
 if __name__ == '__main__':
@@ -1970,11 +1962,11 @@ if __name__ == '__main__':
     # PORTARE I FIR TIPO_A DA NC NELLA PROPRIA CARTELLA CON PROCESSO AUTOMATIZZATO
     # FAI CHECK DB STATIC E QUELLI MODIFICATI CON FUNZIONE CHECK_FIRLIST_TIPO_A()
     # CONSIDERA OCR_MT_CHECK_TIPOA_20210712 PER INSERIMENTO A DB MERGE
-    listfir_todo = check_firlist_tipologia(tipo='nc', ocr_from_tipologia=True)
+    listfir_todo = check_firlist_tipologia(tipo='tipo_a', ocr_from_tipologia=True)
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
     # FAI CHECK TIPOLOGIA (FIR - TRS, NIECO) NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    listfir_todo = [item for item in listfir_todo]
+    listfir_todo = ['88776_20210119163819056'] #[item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
@@ -2005,6 +1997,7 @@ if __name__ == '__main__':
         # LO VERIFICO POI ATTRAVERSO FUNZIONE "PROCESS_IMAGE()"
         # CONSIDERA RITAGLIO PARTE SUPERIORE PER FIR RUOTATI
         try:
+            logger.info('FILE RINOMINATO DA {0} A {1} IN {2}'.format(load_file, load_accepted_file, IMAGE_PATH))
             os.rename(os.path.join(IMAGE_PATH, load_file + '.jpg'), os.path.join(IMAGE_PATH, load_accepted_file))
         except FileNotFoundError:
             logger.info('FILE NON TROVATO IN {}'.format(IMAGE_PATH))
@@ -2021,10 +2014,12 @@ if __name__ == '__main__':
             logger.info('\n{0} ANALISI FILE {1} {0}\n'.format('-o' * 20, file_only))
             process_image(file_only)
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
-            info = GetFileInfo(file_png, logger=logger, web=True)
+            info = GetFirOCR(file_png, logger=logger, web=True)
             ocr_fir = info.check_from_old_db()
             if not ocr_fir:
-                ocr_fir = info.find_info()
+                ocr_fir = info.perform_ocr_fir()
+
+            # info.select_prod()
             logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
             logger.info("\nFILE {0} : {1} {2}\n".format(info.file_only, info.nome_tipologia, ocr_fir))
             logger.info('\n{0} FINE SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
@@ -2041,8 +2036,6 @@ if __name__ == '__main__':
                 # logf.write('{}\n'.format(logging.exception('ERROR MESSAGE:')))
                 logf.write("Exception - {0}\n".format(str(e)))
                 logf.close()
-        finally:
-            info.conn.close()
 
     logger.info('{0} FILES PROCESSATI IN {1} SECONDI'.format(len(files), time.time() - start_time))
     logger.info('{0} ESECUZIONE SCANSIONE FORMULARI RIFIUTI TERMINATA {0}'.format('!' * 20))
