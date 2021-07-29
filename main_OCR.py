@@ -76,6 +76,7 @@ class GetFirOCR:
         self.crop_height = None
         self.rotated_file = False
         self.flt = set(['GRAY'])
+        self.accepted_words = set()
         self.nome_tipologia = 'NC'
         self.tipologia = 'NC'
         self.produttore = 'NOT FOUND'
@@ -146,8 +147,8 @@ class GetFirOCR:
         dtms = ['20210702', '20210708', '20210711', '20210714', '20210715']
         for kk, dtm in enumerate(dtms):
             q = """
-                SELECT tipologia FROM files_WEB_{dtm}
-                where file = '{file}';
+                SELECT file, tipologia FROM files_WEB_{dtm}
+                where file like '{file}%';
             """.format(dtm=dtm, file=self.file_only)
             res = self.cur.execute(q).fetchall()
             if (not kk == len(dtms) - 1) and (not res):
@@ -156,7 +157,8 @@ class GetFirOCR:
                 self.logger.info('FILE {0} NON ANALIZZATO IN PASSATO'.format(self.file_only))
                 return self.ocr_fir
 
-            nome_tipologia_to_check = self.cur.execute(q).fetchall()[0][0]
+            self.file_only = self.cur.execute(q).fetchall()[0][0]
+            nome_tipologia_to_check = self.cur.execute(q).fetchall()[0][1]
             logger.info('FILE ANALIZZATO IN PASSATO E PRESENTE IN DB')
             self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
             if nome_tipologia_to_check == 'NC':
@@ -215,8 +217,11 @@ class GetFirOCR:
             else:
                 self.logger.info('{0} TIPOLOGIA PER FILE {1} CONFERMATA A {2} {0}'
                                  .format('+' * 20, self.file_only, nome_tipologia_to_check))
-                # INSERISCO IMMAGINE NELLA CARTELLA ASSOCIATA (OVERKILL MA PER SICUREZZA RIPETO)
-                self.save_move_delete_png(info='PRODUTTORE')
+                # SE IMMAGINE CARICATA DA WEB APP ALLORA SALVO ANCHE SU DIRECTORY ASSOCIATA DI NEW_OCR
+                filetosave = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
+                filePRODtosave = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')
+                if (not os.path.exists(filetosave)) or (not os.path.exists(filePRODtosave)):
+                    self.save_move_delete_png(info='PRODUTTORE')
                 q = """
                     SELECT *
                     FROM "{table}"
@@ -227,6 +232,24 @@ class GetFirOCR:
                     item = res[0]
                     self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6],
                                     'ocr_size': item[2]}
+
+                    self.full_info = self.read_full_info_from_csv(info=INFO_FIR['PROD']['TABLE'])
+                    ok_words = set()
+                    for k, lst in self.full_info['PRODUTTORI'].items():
+                        for elem in lst:
+                            if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
+                                ok_words.add(elem)
+
+                    for key_tipo, val_d in TIPO_FIR.items():
+                        for key, val in val_d.items():
+                            if val == self.nome_tipologia:
+                                tipologia = key_tipo
+
+                    # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
+                    self.accepted_words = set(list(set(ok_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
+                                              + COMMON_FIR_INFO[tipologia])
+
+                    self.check_esclusione_ocr_fir()
             break
 
         if self.nome_tipologia != nome_tipologia_to_check:
@@ -272,14 +295,14 @@ class GetFirOCR:
     def fir_properties(self):
         self.logger.info('INFO ESATTE CERCATE NEL DB PER FILE {}'.format(self.file_only))
         self.produttore = self.get_exact_info(info='prod')
-        self.logger.info('{0} PRODUTTORE : {1} {0}'.format('+' * 20, self.produttore))
+        self.logger.info('{0} PRODUTTORE : {1} {0}'.format('-' * 20, self.produttore))
         self.trasportatore = self.get_exact_info(info='trasp')
-        self.logger.info('{0} TRASPORTATORE : {1} {0}'.format('+' * 20, self.trasportatore))
+        self.logger.info('{0} TRASPORTATORE : {1} {0}'.format('-' * 20, self.trasportatore))
         self.raccoglitore = self.get_exact_info(info='racc')
-        self.logger.info('{0} DESTINATARIO : {1} {0}'.format('+' * 20, self.raccoglitore))
+        self.logger.info('{0} DESTINATARIO : {1} {0}'.format('-' * 20, self.raccoglitore))
         self.get_exact_info(info='FIR')
-        self.logger.info('{0} COD RIFIUTO : {1} {0}'.format('+' * 20, self.cod_rifiuto))
-        self.logger.info('{0} PESO RISCONTRATO : {1} {0}'.format('+' * 20, self.peso_riscontrato))
+        self.logger.info('{0} COD RIFIUTO : {1} {0}'.format('-' * 20, self.cod_rifiuto))
+        self.logger.info('{0} PESO RISCONTRATO : {1} {0}'.format('-' * 20, self.peso_riscontrato))
 
     def perform_ocr_fir(self):
         word_like = {}
@@ -288,8 +311,6 @@ class GetFirOCR:
 
         self.logger.info('{0} ESECUZIONE OCR PER FILE : {1} {0}'.format('+' * 20, self.file_only))
         self.logger.info('SIZE IMMAGINE : {0} w - {1} h'.format(self.width, self.height))
-
-        self.fir_properties()
 
         # CREA NUOVO DB PER NUOVI FIR ESEGUENDO OCR COMPLETO
         # OPPURE FACCIO OCR RITAGLIO NEL CASO DI FIR GIA' ANALIZZATO
@@ -327,8 +348,8 @@ class GetFirOCR:
             self.logger.info("PER FILE {0} TIPOLOGIA GIA' INDIVIDUATA --> {1}"
                              .format(self.file_only, self.nome_tipologia))
             if self.rotated_file:
-                # SE HO GIA' FIR ANALIZZATO CON ROTAZIONE ALLORA MODIFICO IL FILENAME AGGIUNGENDO DICITURA "_rot"
-                orig_filename = self.file_only.split('_rot')[0] + '.png'
+                # SE HO GIA' FIR ANALIZZATO CON ROTAZIONE IL FILENAME HA IN AGGIUNTA "_rot"
+                orig_filename = self.file_only + '.png'
                 self.logger.info('NOME PRIMA ROTAZIONE {}'.format(orig_filename))
                 img = Image.open(os.path.join(PNG_IMAGE_PATH, orig_filename))
                 img_copy = img.copy()
@@ -386,6 +407,7 @@ class GetFirOCR:
         if res:
             self.logger.info("PAROLE DETERMINATE DA OCR GIA' ACQUISITE")
             self.logger.info("ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
+            self.check_esclusione_ocr_fir()
             return self.ocr_fir
         # IN CASO DI TIPOLOGIA TROVATA E NON ANALIZZATA, SI CERCANO LE INFO
         for inf in ['prod', 'trasp', 'racc']:
@@ -394,6 +416,45 @@ class GetFirOCR:
             break
 
         return self.ocr_fir
+
+    def check_esclusione_ocr_fir(self):
+        """
+        IGNORO RISULTATI OCR IN CUI TROVO PAROLE NON APPARTENENTI A PAROLE REALMENTE ESISTENTI NEI FIR
+        CONSIDERANDO QUEI SET DI PAROLE OCR CON LUNGHEZZA INFERIORE O UGUALE 2
+        :return:
+        """
+        self.logger.info('CONTROLLO SE RISULTATI OCR SONO DETERMINATI DA SCRITTURA INCOMPRENSIBILE')
+        ocr_info_list = []
+        # par = re.sub('\W', '', self.ocr_fir['ocr_prod'])
+        par = re.sub("[\[\{\}\]\"\' ]", '', str(self.ocr_fir['ocr_prod']))
+        if not re.search(',', par):
+            ocr_info_list.append(par)
+        else:
+            par = par.split(',')
+            for elem in par:
+                ocr_info_list.append(elem)
+
+        self.logger.info('RISULTATO OCR DA VERIFICARE {}'.format(ocr_info_list))
+        flag = True
+        if len(ocr_info_list) <= 2:
+            for val in ocr_info_list:
+                self.logger.info('ACCEP WORDS {}'.format(len(self.accepted_words)))
+                if val not in self.accepted_words:
+                    flag = False
+                    self.logger.info("PAROLA OCR '{}' NON ACCETTATO DERIVANTE DA SCRITTURA POCO COMPRENSIBILE"
+                                     .format(val))
+                    ocr_info_list.remove(val)
+                    data = set(ocr_info_list)
+                    self.ocr_fir['ocr_prod'] = data
+                    if len(self.ocr_fir['ocr_prod']) > 0:
+                        self.update_info_db(data)
+                    else:
+                        self.delete_table(table='OCR_FIR')
+                    filesaved = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
+                    if not os.path.exists(filesaved):
+                        self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+        if flag:
+            self.logger.info('RISULTATO OCR CORRETTO E MANTENUTO INALTERATO')
 
     def esclusione_parole_tipologia(self, tipo, word_like, pid):
 
@@ -547,12 +608,12 @@ class GetFirOCR:
     def crop_top_area(self, top_ini=0):
         q = """
             SELECT coor_y 
-            FROM parole_WEB t1
-            LEFT JOIN files_WEB t2
+            FROM parole_WEB{dtm} t1
+            LEFT JOIN files_WEB{dtm} t2
             ON (t1.id_file=t2.id)
             WHERE file = '{file}' 
             ORDER BY t1.id ASC LIMIT 1;
-        """.format(file=self.file_only)
+        """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', file=self.file_only)
         cy = self.cur.execute(q).fetchall()[0][0]
         # SE PRIMA PAROLA HA COORDINATA Y MAGGIORE DI 200 ALLORA FACCIO TAGLIO SU TOP
         # PER RIMUOVERE IL BIANCO FOGLIO DATO DALLA ROTAZIONE
@@ -704,7 +765,9 @@ class GetFirOCR:
                    rot_file=self.file_only, orig_file=orig_file_only)
         self.cur.execute(q)
         self.conn.commit()
-        os.remove(os.path.join(orig_file))
+        # FILE E' CHIAMATO COME MODULO ESTERNO ALLORA EVITO CANCELLAZIONE FILE
+        if __name__ == 'main':
+            os.remove(os.path.join(orig_file))
 
     def ocr_analysis(self, img):
         # SEE https://github.com/faustomorales/keras-ocr/issues/65
@@ -871,14 +934,14 @@ class GetFirOCR:
 
         res = self.check_file(table='OCR_{}'.format(info_fir))
 
-        accepted_words = set()
+        ok_words = set()
         for k, lst in self.full_info['PRODUTTORI'].items():
             for elem in lst:
                 if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
-                    accepted_words.add(elem)
+                    ok_words.add(elem)
 
         # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
-        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
+        self.accepted_words = set(list(set(ok_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
                              + COMMON_FIR_INFO[self.tipologia])
 
         if not res:
@@ -898,7 +961,7 @@ class GetFirOCR:
                 elif re.search('\w', par) and re.search('\d', par) and len(par) > 3:
                     res_par = re.split('\d', par)
                 # CONSIDERO CASO PAROLA LUNGA DATO DA INSIEME PAROLE SENSO COMPIUTO (ES. "SEARISORSESPA")
-                elif len(par) >= 8 and par not in accepted_words:
+                elif len(par) >= 8 and par not in self.accepted_words:
                     fragment_words = ['spa', 'srl', 'sea']
                     res_par = []
                     foo = set()
@@ -908,7 +971,7 @@ class GetFirOCR:
                             res_par.append(fragment_word)
                             for txt in lst:
                                 if len(txt) >= 5:
-                                    for word in accepted_words:
+                                    for word in self.accepted_words:
                                         if len(word) >= 5 and word in txt:
                                             foo.add(word)
                     for elem in foo:
@@ -978,6 +1041,20 @@ class GetFirOCR:
                 id_dict['ID_FIN'] = self.cur.execute(q).fetchall()[0][0]
 
         return parole, id_dict
+
+    def update_info_db(self, data={}):
+        self.conn = sqlite3.connect(self.db)
+        self.cur = self.conn.cursor()
+        q = """
+            UPDATE OCR_FIR{dtm} 
+            SET ocr_prod = "{ocr_prod}"
+            WHERE file = '{file}'
+        """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                   ocr_prod='[{}]'.format(data) if data else self.ocr_fir['ocr_prod'], file=self.file_only)
+
+        self.logger.info(q)
+        self.cur.execute(q)
+        self.conn.commit()
 
     def insert_info_db(self, data):
         self.conn = sqlite3.connect(self.db)
@@ -1174,7 +1251,10 @@ class GetFirOCR:
                 except Exception:
                     self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
-                self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+                # SE IMMAGINE CARICATA DA WEB APP ALLORA RIMUOVO ANCHE SU DIRECTORY ASSOCIATA DI NEW_OCR
+                filetosave = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
+                if os.path.exists(filetosave):
+                    self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
@@ -1288,8 +1368,10 @@ class GetFirOCR:
             if os.path.exists(os.path.join(
                     PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')):
                 os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png'))
-            self.logger.info('INSERIMENTO IN TABELLA OCR_{}'.format(INFO_FIR[info.upper()]['TEXT']))
-            self.insert_info_db(self.ocr_fir)
+            self.check_esclusione_ocr_fir()
+            if self.ocr_fir['ocr_prod']:
+                self.logger.info('INSERIMENTO COMPLETO IN TABELLA OCR_FIR')
+                self.insert_info_db(self.ocr_fir)
 
             # SE LUNGHEZZA SET PAROLE TROVATE NEL RITAGLIO OCR MAGGIORE > 2 ALLORA CERCO INFO ASSOCIATA CON QUERY
             # for item in ['prod', 'trasp', 'dest']:
@@ -1540,7 +1622,6 @@ class GetFirOCR:
             else:
                 self.logger.info('INFORMAZIONE PER FILE {} NON FORNITA DAL DB'.format(self.file_only))
 
-
     def check_ritaglio(self, delim_words, info):
         idx = []
 
@@ -1587,20 +1668,20 @@ class GetFirOCR:
 
         self.logger.info('RANGE PAROLE TROVATE ZONA {} : {}'.format(INFO_FIR[info.upper()]['TEXT'], rwords))
 
-        accepted_words = set()
-        for k, lst in self.full_info['PRODUTTORI'].items():
-            for elem in lst:
-                if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
-                    accepted_words.add(elem)
-
-        # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
-        accepted_words = set(list(set(accepted_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
-                             + COMMON_FIR_INFO[self.tipologia])
+        # ok_words = set()
+        # for k, lst in self.full_info['PRODUTTORI'].items():
+        #     for elem in lst:
+        #         if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
+        #             ok_words.add(elem)
+        #
+        # # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
+        # self.accepted_words = set(list(set(ok_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
+        #                      + COMMON_FIR_INFO[self.tipologia])
 
         # TRATTENGO ALCUNE PAROLE SPECIFICHE
         for rwords_lst in rwords:
             for ii, rword in enumerate(rwords_lst):
-                if rword in accepted_words:
+                if rword in self.accepted_words:
                     rwords_lst[ii] = rword
                     continue
 
@@ -1649,7 +1730,7 @@ class GetFirOCR:
                     # CERCO SE PAROLA APPARTIENE ALLA LINGUA ITALIANA
                     chk = d_it.check(rw)
                     # self.logger.info('CONTROLLO APPARTENENZA {0} ALLA LINGUA ITALIANA -> {1}'.format(rw, chk))
-                    if chk or rw in accepted_words:
+                    if chk or rw in self.accepted_words:
                         foo.add(rw)
 
             # SE IL SET RISULTA VUOTO LO CANCELLO
@@ -1758,8 +1839,19 @@ class GetFirOCR:
             """.format(table='parole_WEB' if self.web else 'parole',
                        dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=curr_id)
 
-            self.logger.info('ELIMINO RECORDS PRECENDENTI NELLA TABELLA {}'
-                             .format('parole_WEB' if self.web else 'parole'))
+            self.logger.info('ELIMINO RISULTATI PER FILE {0} NELLA TABELLA {1}'
+                             .format(self.file_only, 'parole_WEB' if self.web else 'parole'))
+            self.cur.execute(q)
+            self.conn.commit()
+
+        elif table == 'OCR_FIR':
+            q = """
+                DELETE FROM {table}{dtm}
+                WHERE file = "{file}"
+            """.format(table=table,
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', file=self.file_only)
+
+            self.logger.info('ELIMINO RISULTATI PER FILE {0} NELLA TABELLA {1}'.format(self.file_only, table))
             self.cur.execute(q)
             self.conn.commit()
 
@@ -1770,7 +1862,8 @@ class GetFirOCR:
             """.format(table='OCR_{}'.format(info_fir),
                        dtm='_{}'.format(self.check_dtm) if self.check_dtm else '', id_file=curr_id)
 
-            self.logger.info('ELIMINO RECORDS NELLA TABELLA {}'.format('OCR_{}'.format(info_fir)))
+            self.logger.info('ELIMINO RISULTATI PER FILE {0} NELLA TABELLA {1}'.format(self.file_only,
+                                                                                       'OCR_{}'.format(info_fir)))
             self.cur.execute(q)
             self.conn.commit()
 
@@ -1966,7 +2059,7 @@ if __name__ == '__main__':
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
     # FAI CHECK TIPOLOGIA (FIR - TRS, NIECO) NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    listfir_todo = ['88776_20210119163819056'] #[item for item in listfir_todo]
+    listfir_todo = ['101578_DUG473036-2020'] #[item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
@@ -1974,19 +2067,6 @@ if __name__ == '__main__':
     for elem in listfir_todo:  # listfir_todo[:1300]:
         load_files.append(elem.split('.jpg')[0])
     files = []
-    # full_info = read_full_info(info='PRODUTTORI')
-    # # write_info_produttori_to_csv(full_info)
-    # accepted_words = set()
-    # foo = []
-    # for k, lst in full_info['PRODUTTORI'].items():
-    #     for el in lst:
-    #         foo.append(el)
-    #         accepted_words.add(el)
-    # logger.info(len(accepted_words))
-    # # logger.info(accepted_words)
-    # # for el in accepted_words:
-    # #     logger.info(el)
-    # quit()
     # SE FILES CARICATI HANNO TANTI "_" ALLORA NE CONSIDERO SOLO UNO PER SEMPLICITA'
     for load_file in load_files:
         logger.info("VERIFICO IDENEITA' CARATTERI PER FILE {}".format(load_file))
