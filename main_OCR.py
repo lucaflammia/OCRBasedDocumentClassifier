@@ -2113,10 +2113,11 @@ if __name__ == '__main__':
             ORDER BY file);
     """
     rows = cur.execute(q).fetchall()
+    #######!!!!!!!!!!!!!!!!! CHECK  98041_FOR398, 102755_FOR915 RICERCA TRA TUTTE LE 0 PAROLE ACCETTABILI !!!!!!!
     listfir_todo = []
     for row in rows:
         listfir_todo.append(row[0])
-    listfir_todo = ['105586_448831']#[item for item in listfir_todo]
+    listfir_todo = [item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
