@@ -449,7 +449,7 @@ class GetFirOCR:
                     self.ocr_fir['ocr_prod'] = ocr_info_set
                     if len(self.ocr_fir['ocr_prod']) > 0:
                         self.update_info_db(ocr_info_set)
-                        self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+                        self.save_move_delete_png()
                     else:
                         self.delete_table(table='OCR_FIR')
                     self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
@@ -2065,6 +2065,7 @@ if __name__ == '__main__':
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
+    # CONSIDERO LISTA FIR CON OCR DI ALMENO 2 PAROLE
     q = """
         SELECT file FROM (
             SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
@@ -2087,14 +2088,35 @@ if __name__ == '__main__':
             LEFT JOIN files_WEB_20210715 t2
             ON t1.file=t2.file
             ) AS U
-        WHERE ocr_prod not like '%,%'
-        ORDER BY file;
+        WHERE file not in (SELECT file FROM (
+            SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
+            LEFT JOIN files_WEB_20210702 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210708 t1
+            LEFT JOIN files_WEB_20210708 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
+            LEFT JOIN files_WEB_20210711 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
+            LEFT JOIN files_WEB_20210714 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210715 t1
+            LEFT JOIN files_WEB_20210715 t2
+            ON t1.file=t2.file
+            ) AS U
+            WHERE ocr_prod not like '%,%'
+            ORDER BY file);
     """
     rows = cur.execute(q).fetchall()
     listfir_todo = []
     for row in rows:
         listfir_todo.append(row[0])
-    listfir_todo = [item for item in listfir_todo][5:]
+    listfir_todo = ['105586_448831']#[item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
