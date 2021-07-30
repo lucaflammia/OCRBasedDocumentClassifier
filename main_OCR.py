@@ -56,7 +56,7 @@ logger.addHandler(output_file_handler)
 
 log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = os.path.join(PRED_PATH, "tesseract", "build", "tesseract")
 
 
 class GetFirOCR:
@@ -435,25 +435,29 @@ class GetFirOCR:
                 ocr_info_list.append(elem)
 
         self.logger.info('RISULTATO OCR DA VERIFICARE {}'.format(ocr_info_list))
+        self.logger.info('RICERCA TRA TUTTE LE {} PAROLE ACCETTABILI'.format(len(self.accepted_words)))
         flag = True
         if len(ocr_info_list) <= 3:
+            ocr_info_set = set(ocr_info_list)
             for val in ocr_info_list:
                 if val not in self.accepted_words:
                     flag = False
-                    self.logger.info("PAROLA OCR '{}' NON ACCETTATO DERIVANTE DA SCRITTURA POCO COMPRENSIBILE"
+                    self.logger.info("PAROLA OCR '{}' NON ACCETTATA DERIVANTE DA SCRITTURA POCO COMPRENSIBILE"
                                      .format(val))
-                    ocr_info_list.remove(val)
-                    data = set(ocr_info_list)
-                    self.ocr_fir['ocr_prod'] = data
+                    ocr_info_set = ocr_info_set - set([val])
+                    self.logger.info('OCR INFO SET {}'.format(ocr_info_set))
+                    self.ocr_fir['ocr_prod'] = ocr_info_set
                     if len(self.ocr_fir['ocr_prod']) > 0:
-                        self.update_info_db(data)
+                        self.update_info_db(ocr_info_set)
+                        self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
                     else:
                         self.delete_table(table='OCR_FIR')
-                    filesaved = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
-                    if not os.path.exists(filesaved):
-                        self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+                    self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
         if flag:
             self.logger.info('RISULTATO OCR CORRETTO E MANTENUTO INALTERATO')
+            filesaved = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
+            if os.path.exists(filesaved):
+                os.remove(filesaved)
 
     def esclusione_parole_tipologia(self, tipo, word_like, pid):
 
@@ -2057,7 +2061,40 @@ if __name__ == '__main__':
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
     # FAI CHECK TIPOLOGIA (FIR - TRS, NIECO) NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    listfir_todo = ['101578_DUG473036-2020'] #[item for item in listfir_todo]
+    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+    logger.info('FIR ANALIZZATI DA DB {}'.format(db))
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    q = """
+        SELECT file FROM (
+            SELECT t1.*, t2.tipologia FROM OCR_FIR_20210702 t1
+            LEFT JOIN files_WEB_20210702 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210708 t1
+            LEFT JOIN files_WEB_20210708 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210711 t1
+            LEFT JOIN files_WEB_20210711 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210714 t1
+            LEFT JOIN files_WEB_20210714 t2
+            ON t1.file=t2.file
+            UNION 
+            SELECT t1.*, t2.tipologia  FROM OCR_FIR_20210715 t1
+            LEFT JOIN files_WEB_20210715 t2
+            ON t1.file=t2.file
+            ) AS U
+        WHERE ocr_prod not like '%,%'
+        ORDER BY file;
+    """
+    rows = cur.execute(q).fetchall()
+    listfir_todo = []
+    for row in rows:
+        listfir_todo.append(row[0])
+    listfir_todo = [item for item in listfir_todo][5:]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))

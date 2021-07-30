@@ -1,13 +1,24 @@
 import sqlite3
 import os
+import sys
 from datetime import datetime
 
 now = datetime.now()
 date_time = now.strftime("%Y-%m-%d %H-%M-%S")
 
-BASEPATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
-                           "\\OCR_development\\NEW_OCR")
-PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
+if (__name__ == '__main__') and sys.platform == 'win32':
+    BASEPATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
+                               "\\OCR_development\\NEW_OCR")
+    PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
+elif (__name__ == '__main__') and sys.platform != 'win32':
+    BASEPATH = os.path.abspath("C:Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
+                               "\\OCR_development\\NEW_OCR")
+    PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
+
+else:
+    BASEPATH = os.path.abspath(".")
+    PRED_PATH = os.path.abspath("..")
+
 DB_PATH = os.path.join(PRED_PATH, 'DEMO_APP', 'WEB_APP')
 DB_BACKUP_PATH = os.path.join(BASEPATH, 'DB_BACKUP')
 DB_STATIC_PATH = os.path.join(PRED_PATH, 'DB_STATIC')
