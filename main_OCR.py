@@ -233,7 +233,7 @@ class GetFirOCR:
                     self.ocr_fir = {'ocr_prod': item[4], 'ocr_trasp': item[5], 'ocr_racc': item[6],
                                     'ocr_size': item[2]}
 
-                    self.full_info = self.read_full_info_from_csv(info=INFO_FIR['PROD']['TABLE'])
+                    self.full_info = self.read_full_info_from_csv(info='PRODUTTORI')
                     ok_words = set()
                     for k, lst in self.full_info['PRODUTTORI'].items():
                         for elem in lst:
@@ -436,9 +436,8 @@ class GetFirOCR:
 
         self.logger.info('RISULTATO OCR DA VERIFICARE {}'.format(ocr_info_list))
         flag = True
-        if len(ocr_info_list) <= 2:
+        if len(ocr_info_list) <= 3:
             for val in ocr_info_list:
-                self.logger.info('ACCEP WORDS {}'.format(len(self.accepted_words)))
                 if val not in self.accepted_words:
                     flag = False
                     self.logger.info("PAROLA OCR '{}' NON ACCETTATO DERIVANTE DA SCRITTURA POCO COMPRENSIBILE"
@@ -1052,7 +1051,6 @@ class GetFirOCR:
         """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
                    ocr_prod='[{}]'.format(data) if data else self.ocr_fir['ocr_prod'], file=self.file_only)
 
-        self.logger.info(q)
         self.cur.execute(q)
         self.conn.commit()
 
@@ -1501,7 +1499,7 @@ class GetFirOCR:
                 prod_dict[col] = sorted(foo)
                 # logger.info('{0} : {1} - {2}'.format(col, prod_dict[col][-30:-1], len(prod_dict[col])))
                 full_info_dict[info][col] = prod_dict[col]
-                return full_info_dict
+            return full_info_dict
 
         if info == 'TRASPORTATORI':
             columns = ['c_cod_rifiuto', 'a_piva_trasp', 'a_prov_trasp', 'a_comune_trasp', 'a_via_trasp',
@@ -1545,7 +1543,7 @@ class GetFirOCR:
                 trasp_dict[col] = sorted(foo)
                 # logger.info('{0} : {1} - {2}'.format(col, trasp_dict[col][-30:-1], len(trasp_dict[col])))
                 full_info_dict[info][col] = trasp_dict[col]
-                return full_info_dict
+            return full_info_dict
 
         if info == 'DESTINATARI':
             columns = ['c_cod_rifiuto', 'a_piva_destinatario_fir', 'a_prov_destinatario_fir',
@@ -1590,7 +1588,7 @@ class GetFirOCR:
                 # logger.info('{0} : {1} - {2}'.format(col, racc_dict[col][-30:-1], len(racc_dict[col])))
                 full_info_dict[info][col] = racc_dict[col]
 
-                return full_info_dict
+            return full_info_dict
 
     def get_exact_info(self, info):
         if not info == 'FIR':
