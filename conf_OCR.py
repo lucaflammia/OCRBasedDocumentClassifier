@@ -11,9 +11,12 @@ if (__name__ == '__main__') and sys.platform == 'win32':
                                "\\OCR_development\\NEW_OCR")
     PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
 elif (__name__ == '__main__') and sys.platform != 'win32':
-    BASEPATH = os.path.abspath("C:Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
-                               "\\OCR_development\\NEW_OCR")
-    PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
+    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR/")
+    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/")
+
+elif not (__name__ == '__main__') and sys.platform != 'win32':
+    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR/")
+    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/")
 
 else:
     BASEPATH = os.path.abspath(".")
@@ -116,7 +119,7 @@ TIPO_B = {
     'SIZE_OCR': [0, 300, 2356, 1000],
     'NO_WORD': COMMON_NO_WORD + [('annunziata', "1-4"), ('ecologia', '1-4')],
     'DLT_ID': 45,
-    'NAME': 'FIR - COBAT',
+    'NAME': 'FIR - RIMONDI PAOLO SRL',
     'FILES': []
 }
 

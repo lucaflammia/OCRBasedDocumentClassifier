@@ -82,8 +82,14 @@ class GetFirOCR:
         self.produttore = 'NOT FOUND'
         self.trasportatore = 'NOT FOUND'
         self.raccoglitore = 'NOT FOUND'
+        self.cod_dest_rifiuto = 'INFORMAZIONE NON FORNITA'
+        self.dest_rifiuto = 'INFORMAZIONE NON FORNITA'
+        self.stato_rifiuto = 'INFORMAZIONE NON FORNITA'
         self.cod_rifiuto = 'INFORMAZIONE NON FORNITA'
         self.peso_riscontrato = 'INFORMAZIONE NON FORNITA'
+        self.data_emissione = 'INFORMAZIONE NON FORNITA'
+        self.data_inizio_trasp = 'INFORMAZIONE NON FORNITA'
+        self.data_fine_trasp = 'INFORMAZIONE NON FORNITA'
         self.ocr_fir = {}
         self.full_info = {}
 
@@ -121,7 +127,7 @@ class GetFirOCR:
 
         return wcond
 
-    def save_move_delete_png(self, info='', delete_from_folder=''):
+    def save_move_delete_png(self, info='', delete_from_folder='', rotation=False):
         img = Image.open(self.file)
         img_copy = img.copy()
         img.close()
@@ -131,12 +137,16 @@ class GetFirOCR:
         else:
             copy_filepath = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia,
                                          self.file_only + '.png')
-        img_copy.save(copy_filepath, 'png')
+        if self.rotated_file:
+            rot = int(self.file_only.split('_rot')[1])
+            img_copy = self.rotate_file(img_copy, rot=rot)
+            img_copy.save(copy_filepath, 'png')
+        else:
+            img_copy.save(copy_filepath, 'png')
 
         if delete_from_folder:
             if os.path.exists(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png')):
                 os.remove(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png'))
-
 
     def check_from_old_db(self):
         # CASO RICERCA DI FALSI POSITIVI DI UNA TIPOLOGIA INIZIALMENTE INDIVIDUATA
@@ -158,6 +168,9 @@ class GetFirOCR:
                 return self.ocr_fir
 
             self.file_only = self.cur.execute(q).fetchall()[0][0]
+            # SE FILE E' STATO RUOTATO
+            if '_rot' in self.file_only:
+                self.rotated_file = True
             nome_tipologia_to_check = self.cur.execute(q).fetchall()[0][1]
             logger.info('FILE ANALIZZATO IN PASSATO E PRESENTE IN DB')
             self.logger.info('TIPOLOGIA DA VERIFICARE {}'.format(nome_tipologia_to_check))
@@ -234,20 +247,7 @@ class GetFirOCR:
                                     'ocr_size': item[2]}
 
                     self.full_info = self.read_full_info_from_csv(info='PRODUTTORI')
-                    ok_words = set()
-                    for k, lst in self.full_info['PRODUTTORI'].items():
-                        for elem in lst:
-                            if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
-                                ok_words.add(elem)
-
-                    for key_tipo, val_d in TIPO_FIR.items():
-                        for key, val in val_d.items():
-                            if val == self.nome_tipologia:
-                                tipologia = key_tipo
-
-                    # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
-                    self.accepted_words = set(list(set(ok_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
-                                              + COMMON_FIR_INFO[tipologia])
+                    self.get_accepted_words()
 
                     self.check_esclusione_ocr_fir()
             break
@@ -279,6 +279,22 @@ class GetFirOCR:
                                  .format(self.file_only, nome_tipologia_to_check))
 
         return self.ocr_fir
+
+    def get_accepted_words(self):
+        ok_words = set()
+        for k, lst in self.full_info['PRODUTTORI'].items():
+            for elem in lst:
+                if len(elem) > 4 or (len(elem) >= 4 and re.search('[aeiou]$', elem)):
+                    ok_words.add(elem)
+
+        for key_tipo, val_d in TIPO_FIR.items():
+            for key, val in val_d.items():
+                if val == self.nome_tipologia:
+                    tipologia = key_tipo
+
+        # AGGIUNGO E RIMUOVO PAROLE DA QUELLE FINORA ACCETTATE
+        self.accepted_words = set(list(set(ok_words) - set(INFO_FIR['PROD']['NO_WORD_OCR']))
+                                  + COMMON_FIR_INFO[tipologia])
 
     def open_fir(self):
         if sys.platform == 'win32':
@@ -349,19 +365,16 @@ class GetFirOCR:
                              .format(self.file_only, self.nome_tipologia))
             if self.rotated_file:
                 # SE HO GIA' FIR ANALIZZATO CON ROTAZIONE IL FILENAME HA IN AGGIUNTA "_rot"
-                orig_filename = self.file_only + '.png'
-                self.logger.info('NOME PRIMA ROTAZIONE {}'.format(orig_filename))
-                img = Image.open(os.path.join(PNG_IMAGE_PATH, orig_filename))
+                orig_filename = self.file_only.split('_rot')[0]
+                self.logger.info('NOME PRIMA DELLA ROTAZIONE {}'.format(orig_filename))
+                img = Image.open(os.path.join(PNG_IMAGE_PATH, orig_filename + '.png'))
                 img_copy = img.copy()
                 img.close()
                 copy_filepath = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
                 rot = int(self.file_only.split('_rot')[1])
                 img_copy = self.rotate_file(img_copy, rot=rot)
                 img_copy.save(copy_filepath, 'png')
-                os.remove(os.path.join(PNG_IMAGE_PATH, orig_filename))
-                # if self.rotated_file:
-                #     rot = self.file_only.split('_')[-1]
-                #     self.update_rotated_filename(rot)
+                os.remove(os.path.join(PNG_IMAGE_PATH, orig_filename + '.png'))
         else:
             # INDIVIDUO LA TIPOLOGIA DEL FIR ANALIZZATO
             for tipo in TIPO_FIR:
@@ -401,11 +414,11 @@ class GetFirOCR:
                 return
 
         res = self.check_file(table='OCR_FIR')
-        # INSERISCO PAROLE DA ACCETTARE QUALORA VENISSERO INDIVIDUATE DURANTE OCR
-        # self.insert_common_words(info_fir='PRODUTTORE')
-        # self.read_full_info_from_csv(info='FIR')
         if res:
             self.logger.info("PAROLE DETERMINATE DA OCR GIA' ACQUISITE")
+            self.full_info = self.read_full_info_from_csv(info='PRODUTTORI')
+            # CONSIDERO PAROLE DA ACCETTARE QUALORA CI FOSSERO PAROLE INDIVIDUATE DA OCR
+            self.get_accepted_words()
             self.logger.info("ESECUZIONE PER FILE {} TERMINATA".format(self.file_only))
             self.check_esclusione_ocr_fir()
             return self.ocr_fir
@@ -650,10 +663,6 @@ class GetFirOCR:
             img_copy.save(os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only)), 'png')
             img_copy.close()
 
-        # SE HO FILENAME MODIFICATO CON "_rot" ALLORA CONSIDERO IL FILE ORIGINALE SENZA QUESTA DICITURA
-        # PER EFFETTUARE IL RITAGLIO
-        # if self.rotated_file:
-        #     orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
         left = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][0]
         top = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][1]
         bottom = TIPO_FIR['{}'.format(self.tipologia)]['SIZE_OCR'][3]
@@ -711,8 +720,6 @@ class GetFirOCR:
         img_crop.save(cfilepath)
 
         gray = self.image_preprocessing(cfilepath)
-        # im = cv2.imread(cfilepath)
-        # gray = cv2.cvtColor(np.uint8(im), cv2.COLOR_BGR2GRAY)
 
         cv2.imwrite("{}".format(cfilepath), gray)
         # RIMUOVO COPIA E FILE INTERO. MANTENGO SOLO IL RITAGLIO
@@ -787,9 +794,9 @@ class GetFirOCR:
         pipeline = keras_ocr.pipeline.Pipeline()
         # PROVO INIZIALMENTE OCR DEL FILE SENZA ROTAZIONE
         # SE HO RISULTATO CORRETTO ESCO DAL CICLO FOR
-        # ROT 180 SIGNIFICA CHE SBAGLIANDO LA ROTAZIONE DI 90 DA UNA PARTE LA CORREGGO CON STESSA ROTAZIONE
+        # ROT -90 SIGNIFICA RUOTO DI NOVANTA GRADI NEL VERSO OPPOSTO
         # DALL'ALTRA PARTE
-        for rot in [0, 90, 180]:
+        for rot in [0, 90, -90]:
             img = self.rotate_file(img, rot=rot)
             # CONSIDERO I RITAGLI (lunghezza / nw, altezza / nh)
             nw = 2
@@ -1074,12 +1081,16 @@ class GetFirOCR:
     def insert_new_records_table(self, data=[], table='files_WEB', dpi=200, flt=''):
         if self.web:
             q = """
-                SELECT * FROM files_WEB WHERE file = '{file}'
-            """.format(file=self.file_only)
+                SELECT * FROM files_WEB{dtm} WHERE file = '{file}'
+            """.format(file=self.file_only,
+                       dtm='_{}'.format(self.check_dtm) if self.check_dtm else '')
             # CONTROLLA SE FILE E' GIA' STATO CONSIDERATO
             res = self.cur.execute(q).fetchall()
 
-            q = 'SELECT id FROM files_WEB ORDER BY id DESC LIMIT 1'
+            q = """
+                SELECT id FROM files_WEB{dtm}
+                ORDER BY id DESC LIMIT 1
+                """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '')
 
             if self.cur.execute(q).fetchall():
                 last_id = self.cur.execute(q).fetchall()[0][0]
@@ -1090,9 +1101,10 @@ class GetFirOCR:
 
             if table == 'files_WEB' and not res:
                 q = """
-                    INSERT INTO files_WEB (id,file,tipologia,produttore,trasportatore,raccoglitore,ts)
+                    INSERT INTO files_WEB{dtm} (id,file,tipologia,produttore,trasportatore,raccoglitore,ts)
                     VALUES ('{id}', '{file}', '{tipologia}', '', '', '', CURRENT_TIMESTAMP)
-                """.format(id=new_id, file=self.file_only, tipologia=self.nome_tipologia)
+                """.format(dtm='_{}'.format(self.check_dtm) if self.check_dtm else '',
+                           id=new_id, file=self.file_only, tipologia=self.nome_tipologia)
                 self.cur.execute(q)
 
             elif table == 'parole_WEB':
@@ -1102,10 +1114,11 @@ class GetFirOCR:
                 # NUOVO INSERIMENTO OCR
                 for par, (lu, ru, ld, rd), div_x, div_y in data:
                     q = """
-                        INSERT INTO parole_WEB (parola, coor_x, coor_y, id_file, div_x, div_y, dpi, flt, ts)
+                        INSERT INTO parole_WEB{dtm} (parola, coor_x, coor_y, id_file, div_x, div_y, dpi, flt, ts)
                         VALUES
                             ("{0}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", CURRENT_TIMESTAMP)
-                    """.format(par, lu[0], lu[1], last_id, div_x, div_y, dpi, flt)
+                    """.format(par, lu[0], lu[1], last_id, div_x, div_y, dpi, flt,
+                               dtm='_{}'.format(self.check_dtm) if self.check_dtm else '')
                     self.cur.execute(q)
 
         self.conn.commit()
@@ -1442,7 +1455,8 @@ class GetFirOCR:
 
         if info == 'FIR':
             columns = ['id_ordine', 'c_cod_rifiuto', 'd_peso_riscontrato',
-                       'b_data_emissione_fir']
+                       'b_data_emissione_fir', 'b_data_fir_inizio_trasporto', 'b_data_fir_data',
+                       'c_destin_rif', 'c_destin_rif_cod', 'c_st_fis_rifiuto']
             for col in columns:
                 if col == 'id_ordine':
                     df[col] = df[col].fillna(0)
@@ -1451,15 +1465,23 @@ class GetFirOCR:
                 df[col] = df[col].fillna('')
                 df[col] = df[col].astype(str)
                 # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
-            data_prod = {
+            data_fir = {
                 'id_fir': df['id_fir'].to_numpy(),
                 'id_ordine': df['id_ordine'].to_numpy(),
                 'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
                 'd_peso_riscontrato': df['d_peso_riscontrato'].to_numpy(),
-                'b_data_emissione_fir': df['b_data_emissione_fir'].to_numpy()
+                'b_data_emissione_fir': df['b_data_emissione_fir'].to_numpy(),
+                'b_data_fir_inizio_trasporto': df['b_data_fir_inizio_trasporto'].to_numpy(),
+                'b_data_fir_data': df['b_data_fir_data'].to_numpy(),
+                'c_destin_rif': df['c_destin_rif'].to_numpy(),
+                'c_destin_rif_cod': df['c_destin_rif_cod'].to_numpy(),
+                'c_st_fis_rifiuto': df['c_st_fis_rifiuto'].to_numpy()
             }
-            df_prod = pd.DataFrame(data=data_prod)
-            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_FIR.csv"))
+            df_fir = pd.DataFrame(data=data_fir)
+            # self.logger.info('INFO {}'.format(df.info()))
+            # self.logger.info('VER RIF {}'.format(df[df['c_st_fis_rifiuto'] != '']
+            #                                      ['c_st_fis_rifiuto'].values))
+            df_fir.to_csv(os.path.join(PRED_PATH, "FULL_INFO_FIR.csv"))
             return None
 
         if info == 'PRODUTTORI':
@@ -1614,13 +1636,20 @@ class GetFirOCR:
             return info_rag_soc
         else:
             q = """
-                SELECT c_cod_rifiuto, d_peso_riscontrato
+                SELECT c_cod_rifiuto, d_peso_riscontrato, b_data_emissione_fir, b_data_fir_inizio_trasporto, 
+                b_data_fir_data, c_st_fis_rifiuto, c_destin_rif, c_destin_rif_cod
                 FROM INFO_FIR
                 WHERE id_fir = '{file}'
             """.format(file=self.file_only.split('_')[0])
             if self.cur.execute(q).fetchall():
                 self.cod_rifiuto = self.cur.execute(q).fetchall()[0][0]
                 self.peso_riscontrato = self.cur.execute(q).fetchall()[0][1]
+                self.data_emissione = self.cur.execute(q).fetchall()[0][2]
+                self.data_inizio_trasp = self.cur.execute(q).fetchall()[0][3]
+                self.data_fine_trasp = self.cur.execute(q).fetchall()[0][4]
+                self.stato_rifiuto = self.cur.execute(q).fetchall()[0][5]
+                self.dest_rifiuto = self.cur.execute(q).fetchall()[0][6]
+                self.cod_dest_rifiuto = self.cur.execute(q).fetchall()[0][7]
             else:
                 self.logger.info('INFORMAZIONE PER FILE {} NON FORNITA DAL DB'.format(self.file_only))
 
@@ -1691,26 +1720,6 @@ class GetFirOCR:
                     # RIMUOVO ELEMENTO MANTENDO POSIZIONE MA INSERENDO STRINGA VUOTA DA ELIMINARE ALLA FINE
                     rwords_lst[ii] = ''
                     continue
-
-                # FAI RICERCA PAROLA LIKE DEI COMMON_FIR_INFO
-                # if len(rword) > 3:
-                #     common_word_like = self.word_like_cond(rword)
-                #     clike = '(' + ' or '.join(common_word_like[rword]) + ')'
-                #     q = """
-                #         SELECT parola
-                #         FROM COMMON_WORDS
-                #         WHERE
-                #         {clike} AND
-                #         tipologia = '{tipologia}'
-                #         LIMIT 1;
-                #     """.format(clike=clike, tipologia=self.nome_tipologia)
-                #     res = self.cur.execute(q).fetchall()
-                #     if res:
-                #         rword = res[0][0]
-                #         rwords_lst[ii] = rword
-                #         if rwords_lst[ii] in INFO_FIR[info.upper()]['NO_WORD_OCR']['{}'.format(self.tipologia)]:
-                #             rwords_lst[ii] = ''
-                #         continue
 
                 rwords_lst[ii] = rword
                 if (not (re.search('[aeiou]$', rword) and len(rword) > 3)) \
@@ -1881,7 +1890,7 @@ def underscore_split(file):
     return file
 
 
-def process_image(curr_file):
+def process_png_image(curr_file):
     filepath = os.path.join(IMAGE_PATH, curr_file)
     newfilepath = os.path.join(PNG_IMAGE_PATH, curr_file)
     try:
@@ -2117,7 +2126,21 @@ if __name__ == '__main__':
     listfir_todo = []
     for row in rows:
         listfir_todo.append(row[0])
-    listfir_todo = [item for item in listfir_todo]
+    # foo1 = ['100252_DUG60054419_rot-90', '107569_451035_rot-90', '101801_446144_rot-90', '97532_fir_rot-90', '106084_449515_rot-90', '101590_445727_rot-90', '96863_441632_rot-90', '100241_FIR1973520_rot-90', '105122_439677_rot-90', '104891_448349_rot-90', '105411_448964_rot-90', '100255_DUG60054819_rot-90', '107575_450862_rot-90', '103104_447406_rot-90', '105507_20210313_rot-90', '102127_doc20210210162244174637_rot-90', '105264_448413_rot-90', '98722_442328_rot-90', '102958_20210222_rot-90', '101571_445959_rot-90', '99850_440906_rot-90', '107133_450572_rot-90', '102024_445204_rot-90', '100256_FIR01432119_rot-90', '100259_FIR0628220_rot-90', '100250_DUG60054519_rot-90', '101767_443975_rot-90', '100238_FIR0812420_rot-90', '104386_447587_rot-90', '102243_445588_rot-90', '104877_4483781_rot-90', '109331_452553_rot-90', '99915_20210208_rot-90', '102959_20210222_rot-90', '102730_fir_rot-90', '102138_doc20210210162244174637_rot-90', '97937_comune_rot-90', '97525_436915_rot-90', '108117_XFIR20442_rot-90', '105509_20210313_rot-90', '98142_rfw58836619_rot-90', '106082_446145_rot-90', '109161_451084_rot-90', '105899_449334_rot-90', '105897_448621_rot-90', '102962_20210222_rot-90', '101825_444066_rot-90', '107574_450573_rot-90', '108414_451674_rot-90', '102430_443006_rot-90', '99843_440904_rot-90', '101805_446145_rot-90', '102129_doc20210210162244174637_rot-90', '107790_450582_rot-90', '102961_20210222_rot-90', '101800_444804_rot-90', '100283_FIR1791420_rot-90', '97527_441754_rot-90', '103103_446711_rot-90', '105538_20210313_rot-90', '107134_450574_rot-90', '96864_440901_rot-90', '108268_450191_rot-90', '105271_446743_rot-90', '105721_448412_rot-90', '96946_FIR1121518_rot-90', '100237_FIR02614419_rot-90', '102681_445232_rot-90', '107783_450080_rot-90', '109329_4525921_rot-90', '106686_448614_rot-90', '108413_451074_rot-90', '102023_445222_rot-90', '100264_DUG60054719_rot-90', '107777_451220_rot-90', '97986_440544_rot-90', '101588_443594_rot-90', '109006_451344_rot-90', '107132_450579_rot-90', '99306_ECOLAMP_rot-90']
+    # foo1 = ['100266_DUG600549-19_-_AUTOSERVICE']
+    # foo = []
+    # for elem in foo1:
+    #     elem = elem[:6]
+    #     elem = elem.replace('_', '')
+    #     foo.append(elem)
+    # listfir_todo = []
+    # for file in os.listdir(os.path.join(IMAGE_PATH)):
+    #     item = file[:6]
+    #     item = item.replace('_', '')
+    #     if item in foo:
+    #         listfir_todo.append(file)
+
+    listfir_todo = ['98366_DUG5741932020_rot90']#[item for item in listfir_todo]
     # [item for item in listfir_todo]
     #logger.info(len(listfir_todo))
     # load_files_tmp = listfir_todo # os.listdir(IMAGE_PATH)[1990:1992]#enumerate(os.listdir(IMAGE_PATH))
@@ -2132,7 +2155,7 @@ if __name__ == '__main__':
         logger.info('NOME FILENAME ACCETTATO --> {}'.format(load_accepted_file))
         load_accepted_file = load_accepted_file + '.jpg'
         # POTREBBE ESSERE BLOCCATO IN CARTELLA IMAGES IN FORMATO PNG E QUINDI DARE ERRORE
-        # LO VERIFICO POI ATTRAVERSO FUNZIONE "PROCESS_IMAGE()"
+        # LO VERIFICO POI ATTRAVERSO FUNZIONE "process_png_image()"
         # CONSIDERA RITAGLIO PARTE SUPERIORE PER FIR RUOTATI
         try:
             logger.info('FILE RINOMINATO DA {0} A {1} IN {2}'.format(load_file, load_accepted_file, IMAGE_PATH))
@@ -2150,9 +2173,11 @@ if __name__ == '__main__':
             file_only = file.split('.')[0]
             file = os.path.join(IMAGE_PATH, file)
             logger.info('\n{0} ANALISI FILE {1} {0}\n'.format('-o' * 20, file_only))
-            process_image(file_only)
+            process_png_image(file_only)
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
             info = GetFirOCR(file_png, logger=logger, web=True)
+            info.read_full_info_from_csv(info='FIR')
+            quit()
             ocr_fir = info.check_from_old_db()
             if not ocr_fir:
                 ocr_fir = info.perform_ocr_fir()
