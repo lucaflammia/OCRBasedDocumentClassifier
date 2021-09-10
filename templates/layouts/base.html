@@ -1,0 +1,654 @@
+<!doctype html>
+<html>
+  <head>
+      {% block head %}
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <title>Cobat Gestionale Online</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="icon" href="https://www.cobat.it/typo3conf/ext/cobat_theme/Resources/Public/Images/favicon/favicon.ico" type="image/x-icon" sizes="16x16">
+        <!--[if lt IE 9]>
+      <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6.2/html5shiv.js"></script>
+        <![endif]-->
+        <!-- IMPORT PER NUOVA API       -->
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+      <link rel="stylesheet" href="../../static/css/styles.css">
+      <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+      <script src="../../static/js/script.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+        <!-- elenco css -->
+      <link href="https://cdn.rawgit.com/mailtoharshit/San-Francisco-Font-/master/sanfrancisco.css" rel="stylesheet">
+      <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/custom-icons/style.css" rel="stylesheet/less" media="screen"><!-- css per caricare le icone custom -->
+      <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/date-time-picker/css/bootstrap-datetimepicker.min.css" rel="stylesheet/less" media="screen"><!-- poi sarà .css -->
+        <!-- <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/stepy/css/jquery.stepy.css" rel="stylesheet" media="screen"> -->
+      <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/twitter_bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/chosen/chosen.css">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/chosen/bootstrap-chosen.css">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/easy-tree/css/easyTree.css">
+      <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/css/cgo.less" rel="stylesheet/less" media="screen"><!-- poi sarà .css -->
+      <link href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/dropzone/css/dropzone.css" rel="stylesheet" media="screen">
+      <!-- elenco javascript -->
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jquery/jquery-1.11.1.min.js"></script>
+
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/materiali_cer_staging.js"></script>
+
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/twitter_bootstrap/js/bootstrap.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jquery-validation-1.12.0/jquery.validate.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jquery-validation-1.12.0/additional-methods.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/validazione-form/metodi_validazione.js"></script>
+        <!-- <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/stepy/js/jquery.stepy.js"></script> -->
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/moment.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/date-time-picker/js/bootstrap-datetimepicker.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/bpopup/jquery.bpopup.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/dropzone/dropzone.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/easy-tree/js/easyTree.js"></script>
+
+      <!-- File di localizzazione -->
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jquery-validation-1.12.0/localization/messages_it.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/date-time-picker/js/locales/bootstrap-datetimepicker.it.js"></script>
+
+      <!-- DA TOGLIERE IN PRODUZIONE -->
+      <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.7.0/less.min.js"></script>
+
+      <!-- PRINT -->
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/css/print.css">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/css/print.css" media="print">
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/css/newStyles/style.css">
+      <!-- TABLE EXPORTER -->
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/dataTables_1-10-13/css/buttons.dataTables.min.css">
+      <link rel="stylesheet" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/dataTables_1-10-13/css/customDataTables.css">
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/jquery.dataTables.min.js"></script>
+      <link rel="stylesheet" type="text/css" href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/css/jquery.dataTables.css">
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/dataTables.buttons.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/buttons.flash.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/buttons.html5.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/buttons.print.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/jszip.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/pdfmake.min.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/jsForTableLibrary/vfs_fonts.js"></script>
+      <script src="https://cdn.datatables.net/fixedcolumns/3.2.6/js/dataTables.fixedColumns.min.js"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.1/css/bootstrap-select.css" />
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.1/js/bootstrap-select.js"></script>
+      <script src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/javascript/libraryForDataTables.js"></script>
+      <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.1.7/css/fixedHeader.dataTables.min.css">
+      <script src="https://cdn.datatables.net/fixedheader/3.1.7/js/dataTables.fixedHeader.min.js"></script>
+      <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.colVis.min.js"></script>
+      <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap.min.css">
+      <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap.min.js"></script>
+      <script src="https://cdn.datatables.net/buttons/1.6.2/js/buttons.bootstrap.min.js"></script>
+      <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.2/css/buttons.bootstrap.min.css">
+
+      <style>
+          .bg_green {
+              background-color: #5FBF00;
+          }
+      </style>
+      {% endblock %}
+  </head>
+  <body>
+  <article role="main" style="padding-bottom:50px">
+	<section class="container-fluid"  >
+		<div class="row">
+			<div class="col-md-2 no-print cgo-menu-collapser" style="padding-left: 0px; padding-right: 0px;">
+<header>
+    <div class="medium-background">
+        <div class="row prImg">
+            <img src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/shared/images/immagine-header.png" height="50px" style="margin-left: 20px;padding:5px;" class="" alt=""/>        </div>
+    </div>
+
+    <div class="dark-background"></div>
+    <div class="light-background"></div>
+
+    <div class="row dark-background custom-sidebar-strict">
+        <div id="sidebar_menu">
+            <!-- doNotPrint -->
+            <div class="panel-group doNotPrint" id="accordion">
+                	<div class="panel panel-cgo">
+		<div class="panel-heading panel-heading " >
+			<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseAnagrafica"> ANAGRAFICA </a></h4>
+		</div>
+		<div id="collapseAnagrafica" class="panel-collapse collapse out">
+			<div class="panel-body">
+
+				<div class="sidebar_menu_content_item" id ="info">
+					<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/info">Informazioni Personali</a>				</div>
+				<div class="sidebar_menu_content_item" id="account">
+					<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/account">Account</a>				</div>
+				<div class="sidebar_menu_content_item" id="sedi">
+					<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/sedi">Sedi</a>				</div>
+
+				<div class="sidebar_menu_content_item" id="sedi_terzi">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/sedi/1">SEDI DI TERZI</a>                </div>
+
+								<div class="sidebar_menu_content_item" id ="automezzi">
+					<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/mezzi">Automezzi</a>				</div>
+
+				<div class="sidebar_menu_content_item" id ="autorizzazioni">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/autorizzazioni">Autorizzazioni</a>                </div>
+                                <!-- <div class="sidebar_menu_content_item" id ="documenti">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/documenti/cerca_documenti">Documenti</a>                </div> -->
+
+
+                                    <div class="sidebar_menu_content_item" id ="">
+                        <form target="_blank" action="https://area2.cobat.it/rdrext/index.lasso" method="POST">
+                            <input type="hidden" name="extcf" value="02210110348">
+                            <input type="hidden" name="extpiva" value="02210110348">
+                            <input type="hidden" name="external" value="1">
+                            <input type="hidden" name="extcol" value="3">
+                            <input type="submit" value="AREA PREVENTIVI" style="border:none; background: none;">
+                        </form>
+                    </div>
+                			</div>
+		</div>
+	</div>
+
+
+
+
+    <div class="panel panel-cgo">
+        <div class="panel-heading panel-heading " >
+            <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseAnagraficaSubfornitori"> ANAGRAFICA SUBFORNITORI </a></h4>
+        </div>
+        <div id="collapseAnagraficaSubfornitori" class="panel-collapse collapse out">
+            <div class="panel-body">
+
+                <div class="sidebar_menu_content_item" id="anagrafica_subfornitori">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica_subfornitori/subfornitori">Subfornitori</a>                </div>
+                <div class="sidebar_menu_content_item" id="sedi_subforntori">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica_subfornitori/sedi">Sedi</a>                </div>
+                <div class="sidebar_menu_content_item" id ="automezzi_subfornitori">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica_subfornitori/mezzi">Automezzi</a>                </div>
+
+                <div class="sidebar_menu_content_item" id ="autorizzazioni_subfornitori">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica_subfornitori/autorizzazioni">Autorizzazioni</a>                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+
+                <div class="panel panel-cgo">
+	<div class="panel-heading panel-heading " >
+		<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseContributo"> CONTRIBUTO AMBIENTALE		</a></h4>
+	</div>
+	<div id="collapseContributo" class="panel-collapse collapse out">
+		<div class="panel-body">
+
+			<!-- <div class="sidebar_menu_content_item" id ="dichiarazionI">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/contributo_ambientale/home_dichiarazioni">DICHIARAZIONI</a>			</div>
+
+			<div class="sidebar_menu_content_item" id ="report_dichiarazioni">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/contributo_ambientale/reportistica">REPORTISTICA</a>            </div> -->
+
+            <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://cobatripa.it/multitraccia/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/index" method="POST">
+                	<input type="hidden" name="username" value="smelter17">
+                	<input type="submit" value="RIPA" style="border:none; background: none;">
+                </form>
+            </div>
+
+            <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://cobatraee.it/multitraccia/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/index" method="POST">
+                	<input type="hidden" name="username" value="smelter17">
+                	<input type="submit" value="RAEE" style="border:none; background: none;">
+                </form>
+            </div>
+
+            <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://tyrecobat.it/multitraccia/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/index" method="POST">
+                    <input type="hidden" name="username" value="smelter17">
+                    <input type="submit" value="TYRE" style="border:none; background: none;">
+                </form>
+            </div>
+
+            <!-- <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://area1.cobat.it/extranet1/cgo_1_ftv.lasso" method="POST">
+                    <input type="hidden" name="id1" value="02210110348">
+                    <input type="hidden" name="id2" value="17">
+                    <input type="hidden" name="id3" value="32">
+                    <input type="hidden" name="id4" value="1">
+                    <input type="submit" value="FOTOVOLTAICO DICHIARAZIONE" style="border:none; background: none;">
+                </form>
+            </div>
+
+            <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://area1.cobat.it/extranet1/cgo_1_ftv.lasso" method="POST">
+                    <input type="hidden" name="id1" value="02210110348">
+                    <input type="hidden" name="id2" value="17">
+                    <input type="hidden" name="id3" value="32">
+                    <input type="hidden" name="id4" value="2">
+                    <input type="submit" value="FOTOVOLTAICO REPORT" style="border:none; background: none;">
+                </form>
+            </div> -->
+
+            <!-- <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="http://area1.cobat.it/extranet1/cgo_1.lasso" method="POST">
+                    <input type="hidden" name="id1" value="02210110348">
+                    <input type="hidden" name="id2" value="17">
+                    <input type="hidden" name="id3" value="32">
+                    <input type="submit" value="STORICO/INTERMEDIAZIONE" style="border:none; background: none;">
+                </form>
+            </div> -->
+
+            <!-- <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://area2.cobat.it/rdrext/index.lasso" method="POST">
+                    <input type="hidden" name="extcf" value="
+                        02210110348"
+                    >
+                    <input type="hidden" name="extpiva" value="
+                        02210110348"
+                    >
+                    <input type="hidden" name="external" value="1">
+                    <input type="hidden" name="extcol" value="3">
+                    <input type="submit" value="AREA PREVENTIVI" style="border:none; background: none;">
+                </form>
+            </div> -->
+
+            	            <!-- <div class="sidebar_menu_content_item" id ="cerca_seriali_dichiarati">
+	                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/contributo_ambientale/cerca_seriali_dichiarati">SERIALI DICHIARATI</a>	            </div>
+
+	            <div class="sidebar_menu_content_item" id ="cerca_seriali_garantiti">
+	                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/contributo_ambientale/cerca_seriali_garantiti">SERIALI GARANTITI</a>	            </div> -->
+            		</div>
+	</div>
+</div>
+
+
+                <div class="panel panel-cgo">
+    <div class="panel-heading panel-heading " >
+        <h4 class="panel-title">
+            <a data-toggle="collapse" data-parent="#accordion" href="#collapseIntermediazione">
+              INTERMEDIAZIONE            </a>
+        </h4>
+    </div>
+    <div id="collapseIntermediazione" class="panel-collapse collapse out">
+        <div class="panel-body">
+
+            <div class="sidebar_menu_content_item" id ="ricerca_pdr_intermediazione">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/intermediazione/pdr_intermediazione">PUNTI DI RACCOLTA</a>            </div>
+
+            <div class="sidebar_menu_content_item" id ="gestione_ordini_pdr">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/intermediazione/gestione_ordini">ORDINI PUNTI DI RACCOLTA</a>            </div>
+
+            <div class="sidebar_menu_content_item" id ="bdc_piombo_new">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/report_conferimenti_esterno">REPORT BDC PIOMBO</a>            </div>
+
+            <!-- <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="http://area1.cobat.it/extranet1/cgo_1.lasso" method="POST">
+                    <input type="hidden" name="id1" value="02210110348">
+                    <input type="hidden" name="id2" value="17">
+                    <input type="submit" value="AREA INTERMEDIAZIONE" style="border:none; background: none;">
+                </form>
+            </div> -->
+                        <div class="sidebar_menu_content_item" id ="">
+                <form target="_blank" action="https://intermediazione-staging.cobat.it/loginfromcgo" method="get">
+                    <input type="hidden" name="anagrafica_id" value="17">
+                    <input type="hidden" name="account_id" value="32">
+                    <input type="hidden" name="secret_key" value="ca21e0fe35cf70b1d4a91965df21ad5f">
+                    <input type="submit" value="AREA INTERMEDIAZIONE" style="border:none; background: none;">
+                </form>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+
+
+
+                <div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title">
+            <a data-toggle="collapse" data-parent="#accordion" href="#collapseRichieste">
+                RICHIESTE DI RITIRO            </a>
+        </h4>
+    </div>
+    <div id="collapseRichieste" class="panel-collapse collapse out">
+        <div class="panel-body">
+                            <div class="sidebar_menu_content_item" id="">
+                    <form target="_blank" action="https://tyrecobat.it/gestionale/areaclienti/index.php/anagrafica/index" method="POST">
+                        <input type="hidden" name="username" value="smelter17">
+                        <input type="submit" value="GESTIONE GOMMISTI" style="border:none; background: none;">
+                    </form>
+                </div>
+
+
+            <div class="sidebar_menu_content_item" id="">
+                <form target="_blank" action="https://area2.cobat.it/conferimenti/cgo_1.lasso" method="POST">
+                    <input type="hidden" name="cf" value="02210110348">
+                    <input type="hidden" name="p_iva" value="02210110348">
+                    <input type="hidden" name="id_cgo" value="17">
+                    <input type="submit" value="AREA IMPRESE" style="border:none; background: none;">
+                </form>
+            </div>
+
+            <div class="sidebar_menu_content_item" id="cerca_richiesta">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/richieste_ritiro/cerca_richieste">RICERCA RDR</a>            </div>
+
+            <div class="sidebar_menu_content_item" id="apri_richiesta">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/richieste_ritiro/nuova_richiesta">APERTURA RDR</a>            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseOrdini">GESTIONE ORDINI DI RITIRO</a></h4>
+    </div>
+    <div id="collapseOrdini" class="panel-collapse collapse in">
+        <div class="panel-body">
+
+            <div class="sidebar_menu_content_item_active" id="gestione_ordini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/gestione_ordini">GESTIONE ORDINI</a>            </div>
+
+            <div class="sidebar_menu_content_item" id="cerca_ordini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/cerca_ordini">CERCA ORDINI</a>            </div>
+
+                        <div class="sidebar_menu_content_item" id="valori_ordini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/valorizzazioni">REPORT ORDINI</a>            </div>
+                        <div class="sidebar_menu_content_item" id="reportistica_ordini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/reportistica">REPORTISTICA</a>            </div>
+
+            <div class="sidebar_menu_content_item" id="cerca_listini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/cerca_listini">CERCA LISTINI</a>            </div>
+
+            <div class="sidebar_menu_content_item" id="cerca_abbinamenti">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/ordini_ritiro/cerca_abbinamenti">CERCA ABBINAMENTI</a>            </div>
+
+
+
+                            <div class="sidebar_menu_content_item">
+                    <form target="_blank" action="https://area1.cobat.it/raccoglitori/cgo_1.lasso" method="POST">
+                        <input type="hidden" name="id1" value="02210110348">
+                        <input type="hidden" name="id2" value="17">
+                        <input type="submit" value="AREA RACCOGLITORI" style="border:none; background: none;">
+                    </form>
+                </div>
+
+                            <div class="sidebar_menu_content_item">
+                    <form target="_blank" action="https://area1.cobat.it/extranet2/cgo_1.lasso" method="POST">
+                        <input type="hidden" name="id1" value="02210110348">
+                        <input type="hidden" name="id2" value="17">
+                        <input type="submit" value="AREA IMPIANTI DI TRATTAMENTO" style="border:none; background: none;">
+                    </form>
+                </div>
+
+        </div>
+    </div>
+</div>
+                <div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseBollettini">BOLLETTINI DI COLLAUDO PIOMBO/<br />RICHIESTE DI CONFERIMENTO PIOMBO</a></h4>
+    </div>
+    <div id="collapseBollettini" class="panel-collapse collapse out">
+        <div class="panel-body">
+                            <div class="sidebar_menu_content_item" id="apri_bollettino">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/nuovo_bollettino">Apertura Bollettino</a>                </div>
+
+                        <div class="sidebar_menu_content_item bg_green" id="apri_rdc_piombo">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/rdc_piombo">RDC PIOMBO</a>            </div>
+
+            <div class="sidebar_menu_content_item" id="gestione_carichi">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/gestione">Gestione Bollettini</a>            </div>
+                            <div class="sidebar_menu_content_item" id="gestione_bollettini">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/cerca_carichi">Gestione Carichi Bdc</a>                </div>
+                                        <div class="sidebar_menu_content_item" id="richieste_conferimento">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/richieste_conferimento">Richieste Conferimento</a>                </div>
+                <div class="sidebar_menu_content_item" id="cernita">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/cernita">Cernita</a>                </div>
+                <div class="sidebar_menu_content_item" id="trattamento">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/trattamento" class="disabled">Trattamento</a>                </div>
+                                        <div class="sidebar_menu_content_item" id="report_bollettini">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bollettini_collaudo/report_bollettini">REPORT</a>                </div>
+
+
+        </div>
+    </div>
+</div>
+                <div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseBdcNonPiombo">BOLLETTINI NON PIOMBO/<br />RICHIESTE DI CONFERIMENTO NON PIOMBO</a></h4>
+    </div>
+    <div id="collapseBdcNonPiombo" class="panel-collapse collapse out">
+        <div class="panel-body">
+            <div class="sidebar_menu_content_item" id="ricerca_bollettini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bdc_non_piombo/ricerca">RICERCA</a>            </div>
+            <div class="sidebar_menu_content_item" id="apertura_bollettini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bdc_non_piombo/apri_da_ordine">APRI DA ORDINE A CURA DELL’IMPIANTO (ORDINI CHIUSI DA LOGISTICO PRESSO IMPIANTO)</a>            </div>
+            <div class="sidebar_menu_content_item" id="apertura_rdc_ordini">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bdc_non_piombo/apri_da_lista_ordini">APRI DA MAGAZZINO / RICHIESTA DI CONFERIMENTO</a>            </div>
+            <div class="sidebar_menu_content_item" id="chiusura_rdc">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/bdc_non_piombo/lista_rdc_da_chiudere">RDC DA CHIUDERE A CURA DELL’IMPIANTO</a>            </div>
+        </div>
+    </div>
+</div>
+                	<div class="panel panel-cgo">
+		<div class="panel-heading panel-heading " >
+			<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseTrattamentoPfu"> TRATTAMENTO PFU </a></h4>
+		</div>
+		<div id="collapseTrattamentoPfu" class="panel-collapse collapse out">
+			<div class="panel-body">
+				<div class="sidebar_menu_content_item" id ="nuovo_trattamento">
+					<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/trattamento_pfu/nuovo_massivo">scarico bollettini</a>                </div>
+				<div class="sidebar_menu_content_item" id ="apertura_rdc_tratt">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/trattamento_pfu/ricerca_trattamento_ciabattato">scarico ciabattato</a>                </div>
+				<div class="sidebar_menu_content_item" id ="ricerca_tratt">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/trattamento_pfu/ricerca">Ricerca trattamento</a>				</div>
+
+			</div>
+		</div>
+	</div>
+
+
+
+                	<div class="panel panel-cgo">
+		<div class="panel-heading panel-heading " >
+			<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseCernitaPile"> CERNITA PILE </a></h4>
+		</div>
+		<div id="collapseCernitaPile" class="panel-collapse collapse out">
+			<div class="panel-body">
+				<!-- <div class="sidebar_menu_content_item" id ="cernita_pile_new">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/cernita_pile/nuova">Nuova</a>                </div> -->
+				<div class="sidebar_menu_content_item" id ="cernita_pile_ricerca">
+                    <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/cernita_pile/ricerca">RICERCA</a>                </div>
+			</div>
+		</div>
+	</div>
+
+
+                <div class="panel panel-cgo">
+	<div class="panel-heading panel-heading " >
+		<h4 class="panel-title">
+		    <a data-toggle="collapse" data-parent="#accordion" href="#collapseRegistro">
+		      REGISTRO	        </a>
+	    </h4>
+	</div>
+	<div id="collapseRegistro" class="panel-collapse collapse out">
+		<div class="panel-body">
+
+            <div class="sidebar_menu_content_item" id ="registro_link">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/registro/welcome">REGISTRO</a>            </div>
+
+		</div>
+	</div>
+</div>
+
+
+                <div class="panel panel-cgo">
+	<div class="panel-heading panel-heading">
+		<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseFatturazione"> FATTURAZIONE </a></h4>
+	</div>
+	<div id="collapseFatturazione" class="panel-collapse collapse out">
+		<div class="panel-body">
+			<div class="sidebar_menu_content_item" id="apertura_bollettini">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/fatturazione/list">ELENCO FATTURE AL 2019</a>			</div>
+
+			<div class="sidebar_menu_content_item" id="prefatture_link">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/fatturazione_reportistica/index/0">PREFATTURAZIONE</a>			</div>
+
+			<div class="sidebar_menu_content_item" id="fatture_link">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/fatturazione_reportistica/index/1">FATTURAZIONE</a>			</div>
+
+			<div class="sidebar_menu_content_item" id="rettifiche_link">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/fatturazione/rettifiche">Rettifiche</a>			</div>
+
+			<div class="sidebar_menu_content_item" id="report_rettifiche_link">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/fatturazione_reportistica/rettifiche">Report rettifiche</a>			</div>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseComunicazioni"> COMUNICAZIONI </a></h4>
+    </div>
+    <div id="collapseComunicazioni" class="panel-collapse collapse out">
+        <div class="panel-body">
+
+
+            <div class="sidebar_menu_content_item" id="ricerca_comunicazioni">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/comunicazioni/cerca_comunicazioni">Ricerca</a>            </div>
+
+
+        </div>
+    </div>
+
+</div>
+
+<div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseDocumenti"> DOCUMENTI </a></h4>
+    </div>
+    <div id="collapseDocumenti" class="panel-collapse collapse out">
+        <div class="panel-body">
+
+            <!-- TO DO: DECIDERE ITEM   DEL MENU DEFINITIVI!!-->
+
+            <div class="sidebar_menu_content_item" id="ricerca_documenti">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/documenti/cerca_documenti">Ricerca</a>            </div>
+
+
+        </div>
+    </div>
+
+</div>
+
+<div class="panel panel-cgo">
+	<div class="panel-heading panel-heading ">
+		<h4 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#collapseCobatcard"> COBATCARD </a></h4>
+	</div>
+	<div id="collapseCobatcard" class="panel-collapse collapse out">
+		<div class="panel-body">
+			<div class="sidebar_menu_content_item" id="login_cobatcard">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/cobatcard/login_cobatcard">Registra la Card</a>			</div>
+			<div class="sidebar_menu_content_item" id="dati_cobatcard">
+				<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/cobatcard/dati_card">Cobat Card</a>			</div>
+		</div>
+	</div>
+</div>
+
+<div class="panel panel-cgo">
+    <div class="panel-heading panel-heading ">
+        <h4 class="panel-title">
+            <a data-toggle="collapse" data-parent="#accordion" href="#collapseSistemi">ALTRI SERVIZI</a>
+        </h4>
+    </div>
+    <div id="collapseSistemi" class="panel-collapse collapse out">
+        <div class="panel-body">
+
+            <div class="sidebar_menu_content_item" id="altri_sistemi_link">
+                <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/servizi/index">ALTRI SERVIZI</a>            </div>
+
+        </div>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+
+</header>         </div>
+			<div class="col-md-10 cgo-content-collapser" style="padding-left: 0px; padding-right: 0px;">
+
+				<div class="row no-print">
+					<div class="col-md-12 ">
+						<header>
+<div class="medium-background doNotPrint">
+	<div class="row">
+		<div class="col-md-8">
+		<!-- <a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/home"><h4 style="padding-top:8px; margin-left:20px; cursor:pointer" id="splashScreenButton"><i class="fa fa-home"></i></h4></a> -->
+			<!-- <div id ="menu" ><ul><li><a href="http://www.cobat.it" target="_blank"> CHI SIAMO</a></li><li><a href="http://www.cobat.it" target="_blank"> NEWS</a></li><li><a href="http://www.cobat.it" target="_blank"> EVENTI</a></li><li><a href="http://www.cobat.it" target="_blank"> RASSEGNA STAMPA</a></li><li><a href="http://www.cobat.it" target="_blank" class="last_menu_item"> CONTATTI</a></li></ul></div> -->
+		</div>
+		<div class="col-md-4">
+			<table id="user_info_table" class="light-background usr-box-custom" style="width: 100%;">
+				<tr>
+					<!-- <td rowspan="4" width="10px;" ><img src="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/images/avatar.png" alt=""/></td> -->
+				</tr>
+				<tr>
+					<td colspan="2">
+						<b>Account: MT smelter</b>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						Ragione sociale: Multitraccia s.c					</td>
+				</tr>
+				<tr>
+					<td>
+						IP Client 93.63.67.9					</td>
+					<td class="pull-right">
+						<a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/home"><i style="margin-right:15px" class="fas fa-home"></i></a><a href="https://cgo.cobat.it/test/COBAT_GESTIONALE_ONLINE/areaclienti/index.php/anagrafica/logout"><i class="fas fa-sign-out-alt"></i></a>					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+</div>
+
+
+<div class="dark-background"></div>
+<div class="light-background"></div>
+</header>					</div>
+				</div>
+				<div class="row">
+                    <div class="col-md-6 col-md-offset-3" style ="padding-top: 20px;">
+                                            </div>
+                </div>
+				<div class="row">
+					<div class="col-md-12 ">
+						<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.1/css/bootstrap-select.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.1/js/bootstrap-select.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.1.1/pdfobject.js"></script>
+<style>
+    .pdfobject-container {
+        height: 50rem;
+        width: 80rem;
+    }
+
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    }
+
+    /* Firefox */
+    input[type=number] {
+    -moz-appearance: textfield;
+}
+</style>
+<article role="main">
+<section class="container-fluid" style="margin-left:20px;">
+    {% block order_content %}{% endblock %}
+    {% block fir_content %}{% endblock %}
+</section></article>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+  </article>
+  </body>
+</html>

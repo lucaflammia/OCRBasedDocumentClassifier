@@ -1,0 +1,210 @@
+{% extends "layouts/base.html" %}
+{% block fir_content %}
+<div class="row text-center" style="border: 4px solid blue;">
+    <h1>Dati estratti dal formulario</h1>
+        <div class="mt-5 col-md-6">
+            <div class="form-group clearfix">
+                <label for="numero_fir" class="col-sm-12 col-no-padding control-label">Nr. FIR</label>
+                <div class="col-sm-12">
+                    <p> {{details['FILE']}} </p>
+    <!--                <input required type="text" id="numero_fir" name="numero_fir"-->
+    <!--                       title="Numero F.I.R." class="form-control">-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>-->
+                </div>
+            </div>
+            <div class="form-group clearfix">
+                <label for="b_data_emissione_fir"
+                       class="col-sm-12 col-no-padding control-label">Data Emissione F.I.R</label>
+                    <div class="col-sm-12">
+                        <p> {{details['DATA EMISSIONE FIR']}} </p>
+    <!--                <div class='input-group date' id='datepicker_data_fir' data-date-format="DD/MM/YYYY">-->
+    <!--                    <p><b>Data F.I.R :</b>-->
+    <!--                        {{details['DATA EMISSIONE FIR']}}-->
+    <!--                    </p>-->
+    <!--                    <input required type='text' name="b_data_emissione_fir" id="b_data_emissione_fir"-->
+    <!--                           title="Data F.I.R" class="form-control fir_item"-->
+    <!--                        readonly />-->
+    <!--                    <span class="input-group-addon">-->
+    <!--                        <span class="glyphicon glyphicon-calendar"></span>-->
+    <!--                    </span>-->
+                    </div>
+            </div>
+            <div class="form-group clearfix">
+                <label for="data_inizio_trasporto"
+                       class="col-sm-12 col-no-padding control-label">Data Inizio Trasporto</label>
+                <div class="col-sm-12">
+                    <p> {{details['DATA INIZIO TRASP']}} </p>
+    <!--                <div class='input-group date' id='datepicker_data_inizio_trasporto' data-date-format="DD/MM/YYYY">-->
+    <!--                    <input readonly required type='text' name="data_inizio_trasporto" title="Data Inizio Trasporto"-->
+    <!--                           class="form-control fir_item" />-->
+    <!--                    <span class="input-group-addon">-->
+    <!--                        <span class="glyphicon glyphicon-calendar"></span>-->
+    <!--                    </span>-->
+    <!--                </div>-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>-->
+                </div>
+            </div>
+            <div class="form-group clearfix">
+                <label for="data_fine_trasporto" class="col-sm-12 col-no-padding control-label">Data Fine Trasporto</label>
+                <div class="col-sm-12">
+                    <p>
+                        {{details['DATA INIZIO TRASP']}}
+                    </p>
+    <!--                <div class='input-group date' id='datepicker_data_fine_trasporto' data-date-format="DD/MM/YYYY">-->
+    <!--                    <input readonly required type='text' name="b_data_fir" title="Data Fine Trasporto"-->
+    <!--                           class="form-control fir_item" />-->
+    <!--                    <span class="input-group-addon">-->
+    <!--                        <span class="glyphicon glyphicon-calendar"></span>-->
+    <!--                    </span>-->
+    <!--                </div>-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>-->
+                </div>
+            </div>
+<!--            <div class="form-group clearfix">-->
+<!--                <label for="d_peso_presunto" class="col-sm-12 col-no-padding control-label">Peso presunto (Kg)</label>-->
+<!--                <div class="col-sm-12">-->
+<!--                    <input type="text" required value="3" id="d_peso_presunto" disabled="disabled"-->
+<!--                           name="d_peso_presunto" id="" title="Peso presunto in kg" class="form-control" />-->
+
+<!--                    <p class="text-muted"> Campo obbligatorio.</p>-->
+<!--                </div>-->
+<!--            </div>-->
+            <div class="form-group clearfix">
+                <label for="d_peso_riscontrato" class="col-sm-12 col-no-padding control-label">Peso Riscontrato (Kg)</label>
+                <div class="col-sm-12">
+    <!--                <input type="number" step="0.01" min="0" name="d_peso_riscontrato"-->
+    <!--                       id="d_peso_riscontrato" title="Peso Riscontrato in kg" class="form-control fir_item" required />-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>-->
+                    <p>
+                        {{details['PESO RISCONTRATO']}}
+                    </p>
+                </div>
+            </div>
+            <div class="form-group clearfix">
+                <label for="c_destin_rifiuto" class="col-sm-6 col-no-padding control-label"> Rifiuto destinato a:</label>
+                <div class="col-sm-6">
+                    <label for="c_destin_rifiuto_cod"
+                           class="col-no-padding control-label">Codice recupero/smaltimento</label>
+                </div>
+                <div class="col-sm-6">
+    <!--                <select required id="c_destin_rifiuto" name="c_destin_rifiuto" class="form-control fir_item">-->
+    <!--                    <option value="">Selezionare</option>-->
+    <!--                    <option value="Recupero">Recupero</option>-->
+    <!--                    <option value="Smaltimento">Smaltimento</option>-->
+    <!--                </select>-->
+                    <p>
+                        {{details['DEST RIFIUTO']}}
+                    </p>
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>                            </div>-->
+                </div>
+                <div class="col-sm-6">
+                    <p>
+                        {{details['COD DEST RIFIUTO']}}
+                    </p>
+    <!--                <input required type="text" name="c_destin_rifiuto_cod" class="form-control fir_item">-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>                            </div>-->
+                </div>
+            </div>
+        </div>
+        <div class="mt-5 col-md-6">
+            <div class="form-group clearfix">
+                <label for="c_st_fis_rifiuto" class="col-sm-12 col-no-padding control-label">Stato Fisico Rifiuto</label>
+                <div class="col-sm-12">
+    <!--                <select required name="c_st_fis_rifiuto" class="form-control fir_item" id="c_st_fis_rifiuto" >-->
+    <!--                    <option value="">Seleziona</option>-->
+    <!--                    <option value="Solido pulverulento">Solido pulverulento</option><option-->
+    <!--                        value="Solido non pulverulento">Solido non pulverulento</option><option-->
+    <!--                        value="Fangoso palabile">Fangoso palabile</option><option value="Liquido">Liquido</option>                                </select>-->
+    <!--                &lt;!&ndash; <input required type="text" name="c_st_fis_rifiuto" class="form-control fir_item" value="Solido non pulverulento"> &ndash;&gt;-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>                            </div>-->
+                    <p>
+                        {{details['STATO RIFIUTO']}}
+                    </p>
+                </div>
+            </div>
+<!--            <div class="form-group clearfix">-->
+<!--                <label for="c_car_per_rifiuto" class="col-sm-12 col-no-padding control-label">Classe Pericolosita</label>-->
+<!--                <div class="col-sm-12">-->
+    <!--                <select name="c_car_per_rifiuto[]" class="form-control selectpicker fir_item"-->
+    <!--                        id="c_car_per_rifiuto" multiple="true" tabindex="4" required >-->
+    <!--                    <option value="" > - Nessuna classe di pericolosità - </option>-->
+    <!--                    <option value="HP1">HP1 - Esplosivo</option><option value="HP2">HP2 - Comburente</option>-->
+    <!--                  <option value="HP3">HP3 - Infiammabile</option><option value="HP4">HP4 - Irritante</option>-->
+    <!--                  <option value="HP5">HP5 - Nocivo</option><option value="HP6">HP6 - Tossico</option><-->
+    <!--                  option value="HP7">HP7 - Cancerogeno</option><option value="HP8">HP8 - Corrosivo</option>-->
+    <!--                  <option value="HP9">HP9 - Infettivo</option><option value="HP10">HP10 - Teratogeno</option>-->
+    <!--                  <option value="HP11">HP11 - Mutageno</option>-->
+    <!--                  <option value="HP12">HP12 - Liberazione di gas a tossicità acuta</option><-->
+    <!--                  option value="HP13">HP13 - Sensibilizzante</option><option value="HP14">HP14 - Ecotossico</option>-->
+    <!--                  <option value="HP15">HP15 - Rifiuto che non possiede direttamente una delle caratteristiche-->
+    <!--                    di pericolo summenzionate ma può manifestarla successivamente</option>-->
+    <!--                </select>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="form-group clearfix">-->
+<!--                <label for="c_codice_colli"-->
+<!--                       class="col-sm-3 col-no-padding control-label selectpicker">Tipologia Contenitori</label>-->
+<!--                <div class="col-sm-12">-->
+<!--                    <select id="c_codice_colli" name="c_codice_colli" class="form-control"  >-->
+<!--                        <option value="">Seleziona</option>-->
+<!--                        <option value="1">Cesta-Pallett-Pezzi a terra</option>-->
+<!--                        <option value="2">Scarrabile</option>-->
+<!--                        <option value="3">Contenitore grande per tubi fluorescenti</option>-->
+<!--                        <option value="4">Contenitore piccolo per altre sorgenti luminose</option>-->
+<!--                        <option value="5">Pallet a perdere</option>-->
+<!--                    </select>-->
+<!--                    <p class="text-muted"></p>-->
+<!--                </div>-->
+<!--            </div>-->
+    <!--        <div class="form-group clearfix">-->
+    <!--            <label for="c_colli_rifiuto" class="col-sm-3 col-no-padding control-label">Numero Contenitori</label>-->
+    <!--            <div class="col-sm-12">-->
+    <!--                <input value="1" type="number" min="0" step="0.01" name="c_colli_rifiuto"-->
+    <!--                       class="form-control" required >-->
+    <!--                <p class="text-muted"> Campo obbligatorio.</p>-->
+    <!--            </div>-->
+    <!--        </div>-->
+            <div class="form-group clearfix">
+                <label for="z_note_fir" class="col-sm-12 col-no-padding control-label">Annotazioni FIR</label>
+                <div class="col-sm-12">
+                    <textarea name="z_note_fir" class="form-control fir_item" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+    <div>
+    <p><b>Anteprima Formulario :</b>
+    <img src="{{ url_for('static', filename='screenshots/{0}_PRODUTTORE.png'.format(details['FILE'])) }}"
+         class="cropped_image" alt="Preview" />
+    </div>
+    <!--<div class="materialeBoxSample">-->
+    <!--    <div class="form-group clearfix col-md-3">-->
+    <!--        <label for="codice_cer" class="col-no-padding control-label ">CER materiale</label>-->
+    <!--        <input name="cerCode" type="text" class="cerMateriale form-control" />-->
+    <!--    </div>-->
+    <!--    <div class="form-group clearfix col-md-3">-->
+    <!--        <label for="codice_cer" class="col-no-padding control-label ">Peso materiale</label>-->
+    <!--        <input name="pesoMateriale" type="text" class="pesoMateriale form-control" />-->
+    <!--    </div>-->
+    <!--    <div class="form-group clearfix col-md-1">-->
+    <!--        <label for="codice_cer" class="col-no-padding control-label ">&nbsp;</label>-->
+    <!--        <button class="btn btn-danger deleteMateriale"><i class="fas fa-trash-alt"></i></button>-->
+    <!--    </div>-->
+    <!--    <div class="form-group clearfix col-md-5">-->
+    <!--        <label for="codice_cer" class="col-no-padding control-label ">&nbsp;</label>-->
+    <!--        <input type="text" class="form-control" style="visibility:hidden" />-->
+    <!--    </div>-->
+    <!--</div>-->
+</div>
+<br/><br/>
+<div class="row text-center" style="border: 4px solid red;">
+    <h1>Analisi OCR</h1>
+    <p><b>Parole Individuate (ZONA PRODUTTORE) :</b> {{details['OCR PROD']['ocr_prod']}}</p>
+    <p><b>Tipologia Osservata :</b> {{details['TIPOLOGIA OSSERVATA']}}</p>
+    <p><b>Tipologia Predetta (SUPERIORE AL 5%) :</b> </p>
+        <p><b>50% SET DATI TRAINING :</b> {{details['TIPOLOGIA PREDETTA 50% TRAIN/VAL']}}</p>
+        <p><b>100% SET DATI TRAINING :</b> {{details['TIPOLOGIA PREDETTA 100% TRAIN/VAL']}}</p>
+</div>
+<br/><br/>
+<button class="btn btn-primary" id="clearButton">Caricamento Nuovo FIR</button>
+<p><input id="nr_app_run" value={{nr_app_run}}></p>
+{% endblock %}
