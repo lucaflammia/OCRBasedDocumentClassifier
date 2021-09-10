@@ -201,10 +201,9 @@
     <p><b>Parole Individuate (ZONA PRODUTTORE) :</b> {{details['OCR PROD']['ocr_prod']}}</p>
     <p><b>Tipologia Osservata :</b> {{details['TIPOLOGIA OSSERVATA']}}</p>
     <p><b>Tipologia Predetta (SUPERIORE AL 5%) :</b> </p>
-        <p><b>50% SET DATI TRAINING :</b> {{details['TIPOLOGIA PREDETTA 50% TRAIN/VAL']}}</p>
-        <p><b>100% SET DATI TRAINING :</b> {{details['TIPOLOGIA PREDETTA 100% TRAIN/VAL']}}</p>
+        <p><u>50% SET DATI TRAINING</u> : {{details['TIPOLOGIA PREDETTA 50% TRAIN/VAL']}}</p>
+        <p><u>100% SET DATI TRAINING</u> : {{details['TIPOLOGIA PREDETTA 100% TRAIN/VAL']}}</p>
 </div>
 <br/><br/>
 <button class="btn btn-primary" id="clearButton">Caricamento Nuovo FIR</button>
-<p><input id="nr_app_run" value={{nr_app_run}}></p>
 {% endblock %}
