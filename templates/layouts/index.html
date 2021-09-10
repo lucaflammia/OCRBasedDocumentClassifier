@@ -1,0 +1,60 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{title}}{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block order_content %}
+<div class="row">
+<!--    <div class="col-md-7">-->
+<!--        <h3 class="mt-5 animated slideInLeft">Gestione ordine</h3>-->
+<!--        <p class="lead animated slideInRight smallLineHeight">Gestisci l'ordine di ritiro e chiudi l'ordine, inserendo il FIR.</p>-->
+<!--        <p> Numero ordine: <b>R458109CI</b></p>-->
+<!--        <p> Data apertura ordine: <b>11/05/2021</b></p>-->
+<!--        <p class="mt-3">-->
+<!--            <ul class="">-->
+<!--                <li class=""><strong>Stato:</strong> <span class="">1</span></li>-->
+<!--                <li class=""><strong>Flusso:</strong> Piombo </li>-->
+<!--                <li class=""><strong>Codice CER:</strong> 160601</li>-->
+<!--                <li class=""><strong>Peso presunto:</strong> 3 kg</li>-->
+<!--            </ul>-->
+<!--        </p>-->
+<!--    </div>-->
+    <div class="col-md-5 mt-5 animated fadeIn delay-1s">
+        <div class="guideBox">
+            <p class="guideBoxLabel bold">
+                Informazioni supplementari
+            </p>
+            <p class="guideBoxText light">
+                In questa schermata suddivisa per sezioni: puoi visualizzare le informazioni generali di questo ordine e chiudere l'ordine. Per chiudere l'ordine è necessario compilare i campi richiesti.  <b>Assicurati di aver compilato tutti campi richiesti.</b>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block fir_content %}
+<div class="tab-pane active mt-2" id="formulariotab">
+    <div class="row pane-content">
+        <div class="col-12">
+            <h4>Caricamento PDF formulario</h4>
+            <div class="row text-center">
+              <h1>{{title}}</h1>
+              <div class="file-input" id="fileInput">
+                <br><input type="file" name="inpFile" id="inpFile" accept=".jpg, .jpeg, .png, .pdf"></br>
+              </div>
+              <br/><br/>
+                <div class="image-preview" id="imagePreview">
+                  <img src="" alt="Image Preview" class="image-preview__image" width="500" height="500">
+                  <span class="image-preview__default-text">Image Preview</span>
+                </div>
+            </div>
+            <br/><br/>
+            <div class="row text-center">
+              <button class="btn btn-primary" id="clearButton">Reset</button>
+              <button class="btn btn-primary" id="sendButton">Ottieni info</button>
+            </div>
+            <br/><br/>
+            <p><input id="nr_app_run" value={{nr_app_run}}></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
