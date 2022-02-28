@@ -9,9 +9,14 @@ import re
 from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
 import random
-sys.path.append("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
+
+if sys.platform == 'win32':
+    sys.path.append("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
                                "\\OCR_development")
-from NEW_OCR.conf_OCR import *
+else:
+    sys.path.append("/Users/analisi/Luca/OCR_dev")
+
+from OCR_DETECTION.conf_OCR import *
 import string
 import itertools
 import numpy as np
@@ -29,26 +34,29 @@ now = datetime.now()
 date_time = now.strftime("%Y-%m-%d %H-%M-%S")
 
 if not (__name__ == '__main__') and sys.platform == 'win32':
-    NEW_OCR_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
+    OCR_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
                                "\\OCR_development\\NEW_OCR")
     BASEPATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
                                "\\OCR_development")
     NN_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development\\NN")
 elif not (__name__ == '__main__') and sys.platform != 'win32':
-    NEW_OCR_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR")
-    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_development/")
-    NN_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NN")
+    OCR_PATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/OCR_DETECTION")
+    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/")
+    NN_PATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/NN_CREATION")
 else:
-    NEW_OCR_PATH = os.path.abspath("../NEW_OCR/")
+    OCR_PATH = os.path.abspath("../OCR_DETECTION/")
     BASEPATH = os.path.abspath(".")
-    NN_PATH = os.path.abspath("../NN/")
+    NN_PATH = os.path.abspath("../NN_CREATION/")
 
 MODEL_PATH = os.path.join(NN_PATH, 'Model')
 
 if not os.path.exists(os.path.join(NN_PATH, "Model")):
     os.makedirs(os.path.join(NN_PATH, "Model"))
 
-DB_BACKUP_PATH = os.path.join(NEW_OCR_PATH, 'DB_BACKUP')
+if not os.path.exists(os.path.join(NN_PATH, "archive")):
+    os.makedirs(os.path.join(NN_PATH, "archive"))
+
+DB_OFFICIAL_PATH = os.path.join(OCR_PATH, 'DB_OFFICIAL')
 ARCH_PATH = os.path.join(NN_PATH, "archive")
 LOGFILE = "LOG_NN_{}.log".format(date_time)
 
@@ -68,12 +76,13 @@ log_error_path = os.path.join(ARCH_PATH, LOGFILE_ERROR)
 
 
 class GetFirNN:
-    def __init__(self, logger='', type_nn='tflearn', build_model_from_app=False):
-        # self.db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+    def __init__(self, info_loaded_file='', logger='', type_nn='tflearn', build_model_from_app=False):
+        # self.db = os.path.join(DB_OFFICIAL_PATH, 'OCR_FIR_MT.db')
         # self.conn = sqlite3.connect(self.db)
         # self.cur = self.conn.cursor()
         self.build_model_from_app = build_model_from_app
         self.logger = logger
+        self.info_loaded_file = info_loaded_file
         self._perc_train_val_set = None
         self._hidden_nodes = None
         self._epochs = None
@@ -165,7 +174,11 @@ class GetFirNN:
     def build_new_keras_nn(self, x, y, batch_size):
         # ckpt_path = ckpt_path.format(epoch=0, p_epoch= self._perc_train_val_set, hid_nodes=self._hidden_nodes)
         # UNA VOLTA CREATO IL MODELLO ALLORA EVITO DI MISCHIARE TRAINING SET CON self.build_model_from_app = False
-        self.build_model_from_app = False
+
+        # mischio il mazzo anche nel caso percentuale training set di 100%
+        # e prima avevo fatto 50% quindi serve mischiare ancora
+        if self._perc_train_val_set == 100:
+            self.build_model_from_app = False
 
         model = self.get_model(x, y)
         model.summary()
@@ -368,11 +381,11 @@ class GetFirNN:
         Estraggo i temi a partire
         dal documento in ingresso
         costituito dalla lista di tuple
-        (descrizione, categoria)
+        (parole OCR, tipologia)
         """
         temi_in = set()
-        for descrizione in doc_in:
-            temi_in.update([descrizione])
+        for par_OCR in doc_in:
+            temi_in.update([par_OCR])
 
         temi_ocr_fir = list(temi_in)
 
@@ -392,7 +405,6 @@ class GetFirNN:
         return np.array(lista_input)
 
     def trova_tipologie_predette(self, modello, temi_ocr_fir, tipologie, temi_tot):
-        #     logger.info('\nTEMI DESCRIZIONE IN INGRESSO {}\n'.format(temi_ocr_fir))
         x = self.genera_input(temi_ocr_fir, temi_tot)
         # genero la classifica delle tipologie predette (almeno con 25%)
         # inserendo i temi di input nel modello di rete neurale
@@ -424,7 +436,7 @@ class GetFirNN:
         return temi_tot, tipologie, ocr_tipo_parole
 
     def building_nn(self):
-        db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+        db = os.path.join(DB_OFFICIAL_PATH, 'OCR_FIR_MT.db')
         conn = sqlite3.connect(db)
         cur = conn.cursor()
 
@@ -461,39 +473,6 @@ class GetFirNN:
             self.logger.info("NUMERO FIR CON OCR PAROLE = {}".format(len(tot_ocr_tipo_parole)))
             self.logger.info('LUNGHEZZA SET PAROLE DISTINTE = {}'.format(len(temi_tot)))
 
-        # for tipo in TIPO_FIR:
-        #     if tipo in ('TIPO_A_BIS', 'NC'):
-        #         continue
-        #     nome_tipo = TIPO_FIR[tipo.upper()]['NAME']
-        #     if nome_tipo in ('FORMULARIO RIFIUTI - ALLEGATO B - ETM', 'FORMULARIO PULI ECOL', 'FIR - TRS', 'NIECO'):
-        #         tipologie.append(nome_tipo)
-
-        # for nome_tipo in tipologie:
-        #     ocr_info = crea_strutture_training(nome_tipo)
-        #     tot_ocr_dict[nome_tipo] = ocr_info
-        #     logger.info('TIPO {} OCR DICT {}'.format(nome_tipo, len(tot_ocr_dict[nome_tipo])))
-        #     for file, ocr_parole in ocr_info:
-        #         tot_ocr_tipo_parole.append([nome_tipo, ocr_parole])
-
-        # logger.info('OCR TIPO PAROLE {}'.format(tot_ocr_tipo_parole[:5]))
-        # temi = set()
-        # for ocr_list in tot_ocr_tipo_parole:
-        #     for tipo, ocr_parole in [ocr_list]:
-        #         # logger.info('OCR PAR {}'.format(ocr_parole))
-        #         # temi.update(ocr_parole)
-        #         # logger.info('TEMI {}'.format(temi))
-        #         # for elem in ocr_parole:
-        #         #     logger.info('ELEM {}'.format(elem))
-        #         #     temi.add(elem)
-        #         #     logger.info('TEMI {}'.format(temi))
-        #         #     if len(temi) > 5:
-        #         #         break
-        #
-        # temi = list(set(parola for parola in temi))
-        # logger.info('TEMI LEN {0} - {1}'.format(len(temi), temi[:5]))
-
-        # TRAINING E VALIDATION SET CON UNA % (70% DEFAULT) DEI RISULTATI OTTENUTI DALL'OCR
-        # IL RESTO (30% DEFAULT) VIENE USATO COME TEST SET
         TRAIN_TEST_RATIO = 70
         train_val_test_int = int(len(tot_ocr_tipo_parole) * int(TRAIN_TEST_RATIO) / 100)
 
@@ -501,6 +480,11 @@ class GetFirNN:
         train_val_int = int(len(train_val_set) * int(self._perc_train_val_set) / 100)
 
         train_set = train_val_set[:train_val_int]
+        # NEL CASO SI CONSIDERA TRAINING SET NON COMPLETO MI ASSICURO CHE CI SIA DENTRO IL FILE CARICATO IN APP.py
+        if not (len(train_val_set) == len(train_set)):
+            # SOSTITUISCO ULTIMO ELEMENTO CON FILE CARICATO
+            train_set[-1] = (self.info_loaded_file)
+
         val_set = train_val_set[train_val_int:]
         test_set = tot_ocr_tipo_parole[train_val_test_int:]
 
@@ -541,28 +525,9 @@ class GetFirNN:
                     'TYPE_SET': case.split('_')[0].upper()
                 }
                 temi_ocr_fir = self.estrai_temi(parola_in)
-                # if i < 3 and (__name__ == '__main__'):
-                #     self.logger.info('{0} SET NO. {1}'.format(case.split('_')[0], i + 1))
-                #     self.logger.info('FILE ANALIZZATO : {}'.format(file_in))
-                #     self.logger.info('TIPOLOGIA OSSERVATA : {}'.format(tipologia_in))
-                #     self.logger.info('PAROLE OSSERVATE : {}'.format(parola_in))
                 tipol_oss.append(tipologia_in)
                 t_pred = self.trova_tipologie_predette(modello, temi_ocr_fir, tipologie, temi_tot)
                 tipol_pred.append(t_pred[0][0])
-                # if i < 3 and (__name__ == '__main__'):
-                #     self.logger.info('LE PRINCIPALI TIPOLOGIE (>=5%) '
-                #                      'PREDETTE PREDETTE SONO {} [(TIPOL, PROB)] --> {}'
-                #                      .format(len(t_pred), [(t_pred[i][0], t_pred[i][1]) for i in range(len(t_pred))]))
-                #     self.logger.info('<{0}>'.format('-' * 20))
-
-                # if tipologia_in == 'NIECO':
-                #     self.logger.info('FILE ANALIZZATO : {}'.format(file_in))
-                #     self.logger.info('TIPOLOGIA OSSERVATA : {}'.format(tipologia_in))
-                #     self.logger.info('PAROLE OSSERVATE : {}'.format(parola_in))
-                #     self.logger.info('LE PRINCIPALI TIPOLOGIE (>=5%) '
-                #                      'PREDETTE PREDETTE SONO {} [(TIPOL, PROB)] --> {}'
-                #                      .format(len(t_pred), [(t_pred[i][0], t_pred[i][1]) for i in range(len(t_pred))]))
-                #     self.logger.info('<{0}>'.format('-' * 20))
 
                 stat_nn[file_in]['OCR_WORDS'] = parola_in
                 stat_nn[file_in]['TIPOL_OSS'] = tipologia_in
