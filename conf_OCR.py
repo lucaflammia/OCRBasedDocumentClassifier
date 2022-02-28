@@ -11,20 +11,20 @@ if (__name__ == '__main__') and sys.platform == 'win32':
                                "\\OCR_development\\NEW_OCR")
     PRED_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development")
 elif (__name__ == '__main__') and sys.platform != 'win32':
-    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR/")
-    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/")
+    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/OCR_DETECTION/")
+    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/")
 
 elif not (__name__ == '__main__') and sys.platform != 'win32':
-    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR/")
-    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/")
+    BASEPATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/OCR_DETECTION/")
+    PRED_PATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/")
 
 else:
     BASEPATH = os.path.abspath(".")
     PRED_PATH = os.path.abspath("..")
 
 DB_PATH = os.path.join(PRED_PATH, 'DEMO_APP', 'WEB_APP')
-DB_BACKUP_PATH = os.path.join(BASEPATH, 'DB_BACKUP')
-DB_STATIC_PATH = os.path.join(PRED_PATH, 'DB_STATIC')
+DB_OFFICIAL_PATH = os.path.join(BASEPATH, 'DB_OFFICIAL')
+DB_BACKUP_PATH = os.path.join(PRED_PATH, 'BACKUP', 'DB')
 IMAGE_PATH = os.path.join(PRED_PATH, 'FIR_BULK', 'jpg_archive')
 
 if not os.path.exists(os.path.join(BASEPATH, "archive")):
@@ -332,5 +332,5 @@ class QueryFir:
             """
 
     def load_db(self):
-        db_from = os.listdir(DB_BACKUP_PATH)
+        db_from = os.listdir(DB_OFFICIAL_PATH)
         return db_from
