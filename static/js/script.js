@@ -37,7 +37,7 @@ $( document ).ready(function() {
       };
       $.post("/postmethod_reset", {data: JSON.stringify(data)},
       function(err, req, resp){
-        document.location.href = "/"+ resp["responseJSON"]["nr_app_run"];
+        document.location.href = "/loadedFIR="+ resp["responseJSON"]["nr_app_run"];
       });
     } else {
       document.location.href="https://demo-ocr-fir.herokuapp.com/";
@@ -51,16 +51,21 @@ $( document ).ready(function() {
 
   function getFileData(){
     const fake_path = document.getElementById('inpFile').value;
-    const nr_app_run = document.getElementById('nr_app_run').value;
-    console.log(nr_app_run)
+    var url = window.location.href;
+    console.log(url);
+    var nr_app_run = url.split('loadedFIR=')[1]
+    console.log(nr_app_run);
+    if(nr_app_run == undefined){
+        nr_app_run = 0;
+    }
     const data = {
         file: fake_path.split("\\"),
         nr_app_run: nr_app_run
     };
     $.post("/postmethod", {img_data: JSON.stringify(data)},
         function(err, req, resp){
-      window.location.href = "/results/"+ resp["responseJSON"]["unique_id"]
-      + "&" + resp["responseJSON"]["nr_app_run"];
+      window.location.href = "/results/id="+ resp["responseJSON"]["unique_id"]
+      + "&loadedFIR=" + resp["responseJSON"]["nr_app_run"];
     });
   }
 
