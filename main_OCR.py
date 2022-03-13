@@ -62,7 +62,7 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 class GetFirOCR:
     def __init__(self, file='', logger='', web=True):
         self.file = file
-        self.db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+        self.db = os.path.join(DB_OFFICIAL_PATH, 'OCR_FIR_MT.db')
         self.conn = sqlite3.connect(self.db)
         self.cur = self.conn.cursor()
         self.web = web
@@ -82,8 +82,14 @@ class GetFirOCR:
         self.produttore = 'NOT FOUND'
         self.trasportatore = 'NOT FOUND'
         self.raccoglitore = 'NOT FOUND'
+        self.cod_dest_rifiuto = 'INFORMAZIONE NON FORNITA'
+        self.dest_rifiuto = 'INFORMAZIONE NON FORNITA'
+        self.stato_rifiuto = 'INFORMAZIONE NON FORNITA'
         self.cod_rifiuto = 'INFORMAZIONE NON FORNITA'
         self.peso_riscontrato = 'INFORMAZIONE NON FORNITA'
+        self.data_emissione = 'INFORMAZIONE NON FORNITA'
+        self.data_inizio_trasp = 'INFORMAZIONE NON FORNITA'
+        self.data_fine_trasp = 'INFORMAZIONE NON FORNITA'
         self.ocr_fir = {}
         self.full_info = {}
 
@@ -141,7 +147,6 @@ class GetFirOCR:
         if delete_from_folder:
             if os.path.exists(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png')):
                 os.remove(os.path.join(PNG_IMAGE_PATH, delete_from_folder, self.file_only + '_PRODUTTORE.png'))
-
 
     def check_from_old_db(self):
         # CASO RICERCA DI FALSI POSITIVI DI UNA TIPOLOGIA INIZIALMENTE INDIVIDUATA
@@ -225,7 +230,7 @@ class GetFirOCR:
             else:
                 self.logger.info('{0} TIPOLOGIA PER FILE {1} CONFERMATA A {2} {0}'
                                  .format('+' * 20, self.file_only, nome_tipologia_to_check))
-                # SE IMMAGINE CARICATA DA WEB APP ALLORA SALVO ANCHE SU DIRECTORY ASSOCIATA DI NEW_OCR
+                # SE IMMAGINE CARICATA DA WEB APP ALLORA SALVO ANCHE SU DIRECTORY ASSOCIATA DI OCR_DETECTION
                 filetosave = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '.png')
                 filePRODtosave = os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')
                 if (not os.path.exists(filetosave)) or (not os.path.exists(filePRODtosave)):
@@ -421,6 +426,7 @@ class GetFirOCR:
         for inf in ['prod', 'trasp', 'racc']:
             self.full_info = self.read_full_info_from_csv(info=INFO_FIR[inf.upper()]['TABLE'])
             self.get_ocr_info(inf)
+            # AL MOMENTO CONSIDERO SOLO SEZIONE PRODUTTORE
             break
 
         return self.ocr_fir
@@ -644,7 +650,7 @@ class GetFirOCR:
         # https://jaafarbenabderrazak-info.medium.com/ocr-with-tesseract-opencv-and-python-d2c4ec097866
         # BEST PRACTICES https://ai-facets.org/tesseract-ocr-best-practices/
 
-        # SE FILE CARICATO DA WEB_APP ALLORA LO COPIO NELLA DIRECTORY NEW_OCR/IMAGES
+        # SE FILE CARICATO DA WEB_APP ALLORA LO COPIO NELLA DIRECTORY OCR_DETECTION/IMAGES
         try:
             orig_filepath = os.path.join(PNG_IMAGE_PATH, '{0}.png'.format(self.file_only))
             img = Image.open(orig_filepath)
@@ -1261,10 +1267,11 @@ class GetFirOCR:
                 except Exception:
                     self.logger.info('LISTA VUOTA --> NESSUNA PAROLA TROVATA')
                 # SPOSTO IMMAGINE PNG NELLA CARTELLA TIPOLOGIA ASSOCIATA
-                # SE IMMAGINE CARICATA DA WEB APP ALLORA RIMUOVO ANCHE SU DIRECTORY ASSOCIATA DI NEW_OCR
+                # SE IMMAGINE CARICATA DA WEB APP ALLORA RIMUOVO ANCHE SU DIRECTORY ASSOCIATA DI OCR_DETECTION
                 filetosave = os.path.join(PNG_IMAGE_PATH, self.file_only + '.png')
                 if os.path.exists(filetosave):
                     self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+                    self.ocr_fir['ocr_{0}'.format(info)] = set()
                 return
 
         self.logger.info('PAROLE CHE DETERMINANO OCR PER ZONA {0} :\n{1}'
@@ -1279,6 +1286,7 @@ class GetFirOCR:
             self.logger.info('ANALISI OCR NON HA INDIVIDUATO ALCUNA PAROLA. '
                              'ESECUZIONE FILE {} TERMINATA'.format(self.file_only))
             self.save_move_delete_png(delete_from_folder=self.nome_tipologia)
+            self.ocr_fir['ocr_{0}'.format(info)] = set()
             return
 
         self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
@@ -1317,6 +1325,7 @@ class GetFirOCR:
                     if os.path.exists(os.path.join(
                             PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
                         os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
+                    self.ocr_fir['ocr_{0}'.format(info)] = set()
                     return
 
                 self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'.format('#' * 20, INFO_FIR[info.upper()]['TEXT']))
@@ -1361,6 +1370,7 @@ class GetFirOCR:
                     if os.path.exists(os.path.join(
                             PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png')):
                         os.remove(os.path.join(PNG_IMAGE_PATH, self.nome_tipologia, self.file_only + '_PRODUTTORE.png'))
+                    self.ocr_fir['ocr_{0}'.format(info)] = set()
                     return
 
                 self.logger.info('\n{0} RICERCA RITAGLIO {1} {0}\n'
@@ -1450,7 +1460,8 @@ class GetFirOCR:
 
         if info == 'FIR':
             columns = ['id_ordine', 'c_cod_rifiuto', 'd_peso_riscontrato',
-                       'b_data_emissione_fir']
+                       'b_data_emissione_fir', 'b_data_fir_inizio_trasporto', 'b_data_fir_data',
+                       'c_destin_rif', 'c_destin_rif_cod', 'c_st_fis_rifiuto']
             for col in columns:
                 if col == 'id_ordine':
                     df[col] = df[col].fillna(0)
@@ -1459,15 +1470,23 @@ class GetFirOCR:
                 df[col] = df[col].fillna('')
                 df[col] = df[col].astype(str)
                 # df[col] = df[col].str.replace('', '') # RIMUOVERE LA STRINGA ' \"" ' (FATTO MANUALMENTE)
-            data_prod = {
+            data_fir = {
                 'id_fir': df['id_fir'].to_numpy(),
                 'id_ordine': df['id_ordine'].to_numpy(),
                 'c_cod_rifiuto': df['c_cod_rifiuto'].to_numpy(),
                 'd_peso_riscontrato': df['d_peso_riscontrato'].to_numpy(),
-                'b_data_emissione_fir': df['b_data_emissione_fir'].to_numpy()
+                'b_data_emissione_fir': df['b_data_emissione_fir'].to_numpy(),
+                'b_data_fir_inizio_trasporto': df['b_data_fir_inizio_trasporto'].to_numpy(),
+                'b_data_fir_data': df['b_data_fir_data'].to_numpy(),
+                'c_destin_rif': df['c_destin_rif'].to_numpy(),
+                'c_destin_rif_cod': df['c_destin_rif_cod'].to_numpy(),
+                'c_st_fis_rifiuto': df['c_st_fis_rifiuto'].to_numpy()
             }
-            df_prod = pd.DataFrame(data=data_prod)
-            df_prod.to_csv(os.path.join(PRED_PATH, "FULL_INFO_FIR.csv"))
+            df_fir = pd.DataFrame(data=data_fir)
+            # self.logger.info('INFO {}'.format(df.info()))
+            # self.logger.info('VER RIF {}'.format(df[df['c_st_fis_rifiuto'] != '']
+            #                                      ['c_st_fis_rifiuto'].values))
+            df_fir.to_csv(os.path.join(PRED_PATH, "FULL_INFO_FIR.csv"))
             return None
 
         if info == 'PRODUTTORI':
@@ -1622,13 +1641,20 @@ class GetFirOCR:
             return info_rag_soc
         else:
             q = """
-                SELECT c_cod_rifiuto, d_peso_riscontrato
+                SELECT c_cod_rifiuto, d_peso_riscontrato, b_data_emissione_fir, b_data_fir_inizio_trasporto, 
+                b_data_fir_data, c_st_fis_rifiuto, c_destin_rif, c_destin_rif_cod
                 FROM INFO_FIR
                 WHERE id_fir = '{file}'
             """.format(file=self.file_only.split('_')[0])
             if self.cur.execute(q).fetchall():
                 self.cod_rifiuto = self.cur.execute(q).fetchall()[0][0]
                 self.peso_riscontrato = self.cur.execute(q).fetchall()[0][1]
+                self.data_emissione = self.cur.execute(q).fetchall()[0][2]
+                self.data_inizio_trasp = self.cur.execute(q).fetchall()[0][3]
+                self.data_fine_trasp = self.cur.execute(q).fetchall()[0][4]
+                self.stato_rifiuto = self.cur.execute(q).fetchall()[0][5]
+                self.dest_rifiuto = self.cur.execute(q).fetchall()[0][6]
+                self.cod_dest_rifiuto = self.cur.execute(q).fetchall()[0][7]
             else:
                 self.logger.info('INFORMAZIONE PER FILE {} NON FORNITA DAL DB'.format(self.file_only))
 
@@ -1699,26 +1725,6 @@ class GetFirOCR:
                     # RIMUOVO ELEMENTO MANTENDO POSIZIONE MA INSERENDO STRINGA VUOTA DA ELIMINARE ALLA FINE
                     rwords_lst[ii] = ''
                     continue
-
-                # FAI RICERCA PAROLA LIKE DEI COMMON_FIR_INFO
-                # if len(rword) > 3:
-                #     common_word_like = self.word_like_cond(rword)
-                #     clike = '(' + ' or '.join(common_word_like[rword]) + ')'
-                #     q = """
-                #         SELECT parola
-                #         FROM COMMON_WORDS
-                #         WHERE
-                #         {clike} AND
-                #         tipologia = '{tipologia}'
-                #         LIMIT 1;
-                #     """.format(clike=clike, tipologia=self.nome_tipologia)
-                #     res = self.cur.execute(q).fetchall()
-                #     if res:
-                #         rword = res[0][0]
-                #         rwords_lst[ii] = rword
-                #         if rwords_lst[ii] in INFO_FIR[info.upper()]['NO_WORD_OCR']['{}'.format(self.tipologia)]:
-                #             rwords_lst[ii] = ''
-                #         continue
 
                 rwords_lst[ii] = rword
                 if (not (re.search('[aeiou]$', rword) and len(rword) > 3)) \
@@ -1966,7 +1972,7 @@ def check_firlist_tipologia(tipo='', ocr_from_tipologia=False, do_ocr=False):
     from_folder = []
     todo = []
     diffdb = []
-    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+    db = os.path.join(DB_OFFICIAL_PATH, 'OCR_FIR_MT.db')
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
@@ -2069,7 +2075,7 @@ if __name__ == '__main__':
     # check_firlist_tipo_nc()
     # listfir_todo = os.listdir(os.path.join(PNG_IMAGE_PATH, 'NC'))[12:]
     # FAI CHECK TIPOLOGIA (FIR - TRS, NIECO) NEL DB STATIC_CHECK CON CODICE CHECK TIPOLOGIA
-    db = os.path.join(DB_BACKUP_PATH, 'OCR_MT_MERGE_STATIC_CHECK.db')
+    db = os.path.join(DB_OFFICIAL_PATH, 'OCR_FIR_MT.db')
     logger.info('FIR ANALIZZATI DA DB {}'.format(db))
     conn = sqlite3.connect(db)
     cur = conn.cursor()
@@ -2175,6 +2181,7 @@ if __name__ == '__main__':
             process_png_image(file_only)
             file_png = os.path.join(PNG_IMAGE_PATH, file_only + '.png')
             info = GetFirOCR(file_png, logger=logger, web=True)
+            info.read_full_info_from_csv(info='FIR')
             ocr_fir = info.check_from_old_db()
             if not ocr_fir:
                 ocr_fir = info.perform_ocr_fir()
