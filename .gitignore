@@ -1,3 +1,7 @@
 /DB_BACKUP/
 /images/
+node_modules/
+__pycache__/
+*.json
+*.txt
 /archive/
