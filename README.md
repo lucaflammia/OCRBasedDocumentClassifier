@@ -1,2 +1,2 @@
 # NNCreation
-Neural Network code for specific purposes
+Neural Network code used for OCRBasedPredictionApp
