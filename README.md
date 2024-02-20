@@ -1,2 +1,2 @@
-# OCRBasedPredictionApp
-OCR-based prediction Web App 
+# OCRBasedDocumentClassifier
+OCR-based document classifier Web App 
