@@ -7,8 +7,8 @@ if sys.platform == 'win32':
     sys.path.append('C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development\\NEW_OCR')
     sys.path.append('C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat\\OCR_development\\NN')
 else:
-    sys.path.append("/Users/analisi/Luca/OCR_development/NEW_OCR")
-    sys.path.append("/Users/analisi/Luca/OCR_development/NN")
+    sys.path.append("/Users/analisi/Luca/OCR_dev/OCR_DETECTION")
+    sys.path.append("/Users/analisi/Luca/OCR_dev/NN_CREATION")
 
 import main_OCR as model_OCR
 import main_NN as model_NN
@@ -16,7 +16,7 @@ from pdf2image import convert_from_path
 from PIL import Image, ImageFile
 import config as config_app
 # from model_OCR import *
-import NEW_OCR.conf_OCR as conf_OCR
+import OCR_DETECTION.conf_OCR as conf_OCR
 # from NEW_OCR.conf_OCR import *
 
 from flask import Flask, jsonify, render_template, request
@@ -37,7 +37,7 @@ if sys.platform == 'win32':
     OCR_PATH = os.path.abspath("C:\\Users\\Utente\\Documents\\Multitraccia\\Progetti\\Cobat"
                                "\\OCR_development\\NEW_OCR")
 else:
-    OCR_PATH = os.path.abspath("/Users/analisi/Luca/OCR_development/NEW_OCR")
+    OCR_PATH = os.path.abspath("/Users/analisi/Luca/OCR_dev/OCR_DETECTION")
 
 format='%(asctime)s : %(name)s : %(levelname)s : %(message)s'
 logging.basicConfig(format=format)
@@ -60,7 +60,7 @@ def index():
     return render_template("layouts/index.html", nr_app_run=0)
 
 
-@app.route("/<nr_app_run>", methods=["GET"])
+@app.route("/loadedFIR=<nr_app_run>", methods=["GET"])
 def index_reset(nr_app_run):
     remove_id_files()
     return render_template("layouts/index.html", nr_app_run=nr_app_run)
@@ -91,12 +91,12 @@ def log_report():
     return render_template("layouts/log_report.html", title=title, text=unique_text)
 
 
-@app.route("/results/<unique_id>&<nr_app_run>", methods=["GET"])
+@app.route("/results/id=<unique_id>&loadedFIR=<nr_app_run>", methods=["GET"])
 def result_for_uuid(unique_id, nr_app_run):
     title = "Scansione FIR"
     loaded_file = get_file_content(get_filename(unique_id))
-    load_accepted_file = underscore_split(loaded_file)
-    load_accepted_file = load_accepted_file + '.jpg'
+    load_accepted_file_no_ext = underscore_split(loaded_file)
+    load_accepted_file = load_accepted_file_no_ext + '.jpg'
     logger.info('{0} NUOVA SCANSIONE PER FILE {1} {0}'.format('!' * 20, loaded_file))
     logger.info('RINOMINATO FILE DA {0} A {1}'.format(loaded_file + '.jpg', load_accepted_file))
     os.rename(os.path.join(IMAGE_PATH_BULK, loaded_file + '.jpg'),
@@ -111,38 +111,47 @@ def result_for_uuid(unique_id, nr_app_run):
     logger.info('\n{0} SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
     logger.info("\nFILE {0} : {1} {2}\n".format(info.file_only, info.nome_tipologia, ocr_fir))
     logger.info('\n{0} FINE SOMMARIO FILE {1} {0}\n'.format('@' * 20, info.file_only))
-    # PARAMETRI COSTRUZIONE RETE NEURALE
-    nn_param_setup = {
-        'PERC TRAIN VAL SET': [50, 100],
-        'HIDDEN NODES': [64],
-        'EPOCHS': [150]
-    }
-    logger.info('RESULT : nr app {} - TYPE {}'.format(nr_app_run, type(nr_app_run)))
-    if eval(nr_app_run) > 1:
-        build_model_from_app = False
-    else:
-        build_model_from_app = True
 
-    nn = model_NN.GetFirNN(logger=logger, type_nn='keras', build_model_from_app=build_model_from_app)
-    nn.perc_train_val_set = nn_param_setup['PERC TRAIN VAL SET'][0]
-    nn.hidden_nodes = nn_param_setup['HIDDEN NODES'][0]
-    nn.epochs = nn_param_setup['EPOCHS'][0]
+    # SE FIR CARICATO HA UNA TIPOLOGIA E HA PAROLE OCR NELLA SEZIONE PRODUTTORE ALLORA COSTRUISCO RETE NEURALE
+    if info.nome_tipologia != 'NC' and ocr_fir['ocr_prod']:
+        # PARAMETRI COSTRUZIONE RETE NEURALE
+        nn_param_setup = {
+            'PERC TRAIN VAL SET': [50, 100],
+            'HIDDEN NODES': [64],
+            'EPOCHS': [150]
+        }
+        print(eval(nr_app_run))
+        if eval(nr_app_run) > 1:
+            build_model_from_app = False
+        else:
+            build_model_from_app = True
 
-    stat_nn_50perc, equality = nn.building_nn()
-    df = model_NN.get_dataframe(nn_res=stat_nn_50perc)
-    nn.write_files_nn(nn_res=stat_nn_50perc, equality=equality, df=df)
+        nn = model_NN.GetFirNN(info_loaded_file=(load_accepted_file_no_ext, ocr_fir['ocr_prod'], info.nome_tipologia),
+                               logger=logger, type_nn='keras',
+                               build_model_from_app=build_model_from_app)
+        nn.perc_train_val_set = nn_param_setup['PERC TRAIN VAL SET'][0]
+        nn.hidden_nodes = nn_param_setup['HIDDEN NODES'][0]
+        nn.epochs = nn_param_setup['EPOCHS'][0]
 
-    nn.perc_train_val_set = nn_param_setup['PERC TRAIN VAL SET'][1]
+        stat_nn_50perc, equality = nn.building_nn()
+        df = model_NN.get_dataframe(nn_res=stat_nn_50perc)
+        nn.write_files_nn(nn_res=stat_nn_50perc, equality=equality, df=df)
 
-    stat_nn_100perc, equality = nn.building_nn()
-    df = model_NN.get_dataframe(nn_res=stat_nn_100perc)
-    nn.write_files_nn(nn_res=stat_nn_100perc, equality=equality, df=df)
+        nn.perc_train_val_set = nn_param_setup['PERC TRAIN VAL SET'][1]
+
+        stat_nn_100perc, equality = nn.building_nn()
+        df = model_NN.get_dataframe(nn_res=stat_nn_100perc)
+        nn.write_files_nn(nn_res=stat_nn_100perc, equality=equality, df=df)
 
     details = {
         'FILE': info.file_only,
         'TIPOLOGIA OSSERVATA': info.nome_tipologia,
-        'TIPOLOGIA PREDETTA 50% TRAIN/VAL': stat_nn_50perc[loaded_file]['TIPOL_PRED_LIST'],
-        'TIPOLOGIA PREDETTA 100% TRAIN/VAL': stat_nn_100perc[loaded_file]['TIPOL_PRED_LIST'],
+        'TIPOLOGIA PREDETTA 50% TRAIN/VAL':
+            stat_nn_50perc[load_accepted_file_no_ext]['TIPOL_PRED_LIST']
+            if info.nome_tipologia != 'NC' and ocr_fir['ocr_prod'] else 'NON DATO',
+        'TIPOLOGIA PREDETTA 100% TRAIN/VAL':
+            stat_nn_100perc[load_accepted_file_no_ext]['TIPOL_PRED_LIST']
+            if info.nome_tipologia != 'NC' and ocr_fir['ocr_prod'] else 'NON DATO',
         'OCR PROD': ocr_fir,
         'PROD': [info.produttore], #[info.produttore, info.ris_prod],
         'TRASP': [info.trasportatore], #[info.trasportatore, info.ris_trasp],
@@ -174,9 +183,9 @@ def post_javascript_data_reset():
     jsdata = request.form.get("data")
     nr_app_run = jsdata.split('"nr_app_run":')[1].replace('}', '')
     nr_app_run = int(nr_app_run)
-    logger.info('PRE APP RUN {}'.format(nr_app_run))
+    logger.info('PRE APP RESET RUN {}'.format(nr_app_run))
     nr_app_run += 1
-    logger.info('POST APP RUN {}'.format(nr_app_run))
+    logger.info('POST APP RESET RUN {}'.format(nr_app_run))
     params = {'nr_app_run': nr_app_run}
     return jsonify(params)
 

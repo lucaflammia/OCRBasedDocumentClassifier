@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
 /archive/
 /images/
 /logs/
@@ -6,3 +8,24 @@ read_FIR_INFO.py
 web_page.html
 web_page_original.html
 /static/screenshots/
+=======
+*.log
+logs/
+Plot/
+Model/
+archive/
+/
+FILES_SET_100PERC_TRAIN_ep_150_hid_nodes_64.txt
+FILES_SET_50PERC_TRAIN_ep_150_hid_nodes_64.txt
+TEST_30PERC_DATASET.txt
+*.pyc
+>>>>>>> ZZZ
+=======
+/DB_BACKUP/
+/images/
+node_modules/
+__pycache__/
+*.json
+*.txt
+/archive/
+>>>>>>> ZZZ
